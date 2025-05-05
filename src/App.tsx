@@ -1,9 +1,17 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ApplyLeave from "./pages/ApplyLeave";
+import MyLeaves from "./pages/MyLeaves";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminLeaves from "./pages/admin/Leaves";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -16,7 +24,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/apply-leave" element={<ApplyLeave />} />
+          <Route path="/my-leaves" element={<MyLeaves />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/leaves" element={<AdminLeaves />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
