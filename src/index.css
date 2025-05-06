@@ -112,4 +112,87 @@
   .status-rejected {
     @apply bg-status-rejected;
   }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  .input-icon {
+    @apply absolute left-3 top-3 h-4 w-4 text-muted-foreground;
+  }
+  
+  .input-with-icon {
+    @apply pl-10 transition-all duration-200 focus:ring-2 focus:ring-primary;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce 2s infinite;
 }

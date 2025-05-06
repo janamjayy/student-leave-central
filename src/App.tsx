@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
 import ApplyLeave from "./pages/ApplyLeave";
 import MyLeaves from "./pages/MyLeaves";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/apply-leave" element={<ApplyLeave />} />
           <Route path="/my-leaves" element={<MyLeaves />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
