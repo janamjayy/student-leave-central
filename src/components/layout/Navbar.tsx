@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogIn, LogOut, Settings, Bell } from "lucide-react";
 import { 
@@ -12,44 +12,26 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [userName, setUserName] = useState("");
-
-  useEffect(() => {
-    // Check if user is logged in from localStorage
-    const userEmail = localStorage.getItem("userEmail");
-    if (userEmail) {
-      setIsLoggedIn(true);
-      setUserName(userEmail.split('@')[0]);
-      
-      // Check if user is admin
-      const userRole = localStorage.getItem("userRole");
-      setIsAdmin(userRole === "admin");
-    }
-  }, []);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   const handleLogout = () => {
-    // Clear user data from localStorage
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userRole");
-    setIsLoggedIn(false);
-    setIsAdmin(false);
-    toast.success("Logged out successfully!");
+    logout();
+    navigate('/login');
   };
 
   const navItems = [
     { name: "Home", path: "/" },
-    ...(isLoggedIn && !isAdmin ? [{ name: "Apply Leave", path: "/apply-leave" }] : []),
-    ...(isLoggedIn && !isAdmin ? [{ name: "My Leaves", path: "/my-leaves" }] : []),
-    ...(isLoggedIn && isAdmin ? [{ name: "Dashboard", path: "/admin/dashboard" }] : []),
-    ...(isLoggedIn && isAdmin ? [{ name: "Manage Leaves", path: "/admin/leaves" }] : []),
+    ...(user && user.role === 'student' ? [{ name: "Apply Leave", path: "/apply-leave" }] : []),
+    ...(user && user.role === 'student' ? [{ name: "My Leaves", path: "/my-leaves" }] : []),
+    ...(user && user.role === 'admin' ? [{ name: "Dashboard", path: "/admin/dashboard" }] : []),
+    ...(user && user.role === 'admin' ? [{ name: "Manage Leaves", path: "/admin/leaves" }] : []),
   ];
 
   const getInitials = (name: string) => {
@@ -79,7 +61,7 @@ const Navbar = () => {
           </div>
           
           <div className="hidden md:flex items-center space-x-4">
-            {!isLoggedIn ? (
+            {!user ? (
               <>
                 <Link to="/login">
                   <Button variant="ghost" className="flex items-center gap-1 hover:bg-primary/10">
@@ -111,10 +93,10 @@ const Navbar = () => {
                     <Button variant="ghost" className="flex items-center gap-2 hover:bg-primary/10 rounded-full">
                       <Avatar className="h-8 w-8 transition-transform hover:scale-105">
                         <AvatarFallback className="bg-primary text-primary-foreground">
-                          {getInitials(userName)}
+                          {getInitials(user.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{userName}</span>
+                      <span className="font-medium">{user.name}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -170,7 +152,7 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
-            {!isLoggedIn ? (
+            {!user ? (
               <>
                 <Link
                   to="/login"

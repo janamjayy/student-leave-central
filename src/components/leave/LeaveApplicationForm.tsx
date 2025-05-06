@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, FileText, Check } from "lucide-react";
+import { Calendar as CalendarIcon, FileText, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { leaveService } from "@/services/leaveService";
 
 const LeaveApplicationForm = () => {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -21,8 +23,11 @@ const LeaveApplicationForm = () => {
   const [reason, setReason] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
   const [isEmergency, setIsEmergency] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!startDate || !endDate || !leaveType || !reason) {
@@ -35,16 +40,47 @@ const LeaveApplicationForm = () => {
       return;
     }
     
-    // In a real application, this would make an API call
-    toast.success("आपका छुट्टी का आवेदन सफलतापूर्वक जमा किया गया है!");
-    console.log({ startDate, endDate, leaveType, reason, attachmentName, isEmergency });
+    if (!user) {
+      toast.error("You must be logged in to apply for leave");
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      await leaveService.submitLeave({
+        studentId: user.studentId || user.id,
+        studentName: user.name,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        leaveType,
+        reason,
+        isEmergency,
+        attachmentUrl: attachmentName ? `mock_url_for_${attachmentName}` : undefined
+      });
+      
+      toast.success("आपका छुट्टी का आवेदन सफलतापूर्वक जमा किया गया है!");
+      
+      // Reset form
+      setStartDate(undefined);
+      setEndDate(undefined);
+      setLeaveType("");
+      setReason("");
+      setAttachmentName("");
+      setIsEmergency(false);
+    } catch (error) {
+      console.error("Error submitting leave application:", error);
+      toast.error("आवेदन जमा करने में त्रुटि। कृपया पुनः प्रयास करें।");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setAttachmentName(file.name);
-      // In a real application, this would handle file upload
+      // In a real application with Supabase, this would upload the file to storage
     }
   };
 
@@ -87,6 +123,8 @@ const LeaveApplicationForm = () => {
                       selected={startDate}
                       onSelect={setStartDate}
                       initialFocus
+                      disabled={(date) => date < new Date()}
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -114,8 +152,9 @@ const LeaveApplicationForm = () => {
                       onSelect={setEndDate}
                       initialFocus
                       disabled={(date) => 
-                        startDate ? date < startDate : false
+                        startDate ? date < startDate : date < new Date()
                       }
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -180,6 +219,7 @@ const LeaveApplicationForm = () => {
                   className="hidden"
                   onChange={handleFileChange}
                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  disabled={isSubmitting}
                 />
                 <span className="text-sm text-gray-500">
                   {attachmentName || "कोई फ़ाइल नहीं चुनी गई"}
@@ -192,8 +232,16 @@ const LeaveApplicationForm = () => {
           </form>
         </CardContent>
         <CardFooter className="bg-gray-50 rounded-b-lg">
-          <Button onClick={handleSubmit} className="w-full sm:w-auto flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 transition-colors">
-            <Check className="h-4 w-4" />
+          <Button 
+            onClick={handleSubmit} 
+            className="w-full sm:w-auto flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 transition-colors"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
             <span>आवेदन जमा करें</span>
           </Button>
         </CardFooter>

@@ -5,22 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import { Mail, ArrowLeft, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const { resetPassword } = useAuth();
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real application with connected database, you would:
-    // 1. Validate the email
-    // 2. Make API call to send reset email
-    
-    toast.success("Password reset link sent to your email!");
-    setIsSubmitted(true);
+    try {
+      setIsLoading(true);
+      await resetPassword(email);
+      setIsSubmitted(true);
+    } catch (error) {
+      // Error is handled in the auth context
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -49,6 +55,7 @@ const ForgotPassword = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -56,7 +63,11 @@ const ForgotPassword = () => {
               <Button 
                 type="submit" 
                 className="w-full mt-6 group hover:scale-[1.02] transition-all"
+                disabled={isLoading}
               >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
                 Send Reset Link
               </Button>
             </form>

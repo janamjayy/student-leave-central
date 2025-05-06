@@ -1,39 +1,42 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, LogIn, Key } from "lucide-react";
-import { toast } from "sonner";
+import { User, LogIn, Key, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("student");
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
-  const handleLogin = (e: React.FormEvent) => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real app with connected database, you would:
-    // 1. Validate inputs
-    // 2. Make API call to verify credentials
-    // 3. Store user session/token in localStorage or cookie
-    // 4. Redirect to dashboard
-    
-    toast.success(`${role.charAt(0).toUpperCase() + role.slice(1)} logged in successfully!`);
-    
-    // Mock authentication for demonstration
-    if (rememberMe) {
-      localStorage.setItem("userEmail", email);
-      localStorage.setItem("userRole", role);
+    try {
+      setIsLoading(true);
+      await login(email, password, role, rememberMe);
+      
+      // Redirect based on role
+      if (role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/my-leaves');
+      }
+    } catch (error) {
+      // Error is already handled in the auth context
+      setIsLoading(false);
     }
-    
-    console.log({ email, password, role, rememberMe });
   };
 
   return (
@@ -69,6 +72,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -85,6 +89,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -93,6 +98,7 @@ const Login = () => {
                     id="remember-me" 
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    disabled={isLoading}
                   />
                   <label
                     htmlFor="remember-me"
@@ -101,8 +107,16 @@ const Login = () => {
                     Remember me
                   </label>
                 </div>
-                <Button type="submit" className="w-full flex items-center gap-1.5 group">
-                  <LogIn className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <Button 
+                  type="submit" 
+                  className="w-full flex items-center gap-1.5 group"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogIn className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  )}
                   <span>Login as Student</span>
                 </Button>
               </form>
@@ -119,6 +133,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -135,6 +150,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -143,6 +159,7 @@ const Login = () => {
                     id="admin-remember-me" 
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    disabled={isLoading}
                   />
                   <label
                     htmlFor="admin-remember-me"
@@ -151,8 +168,16 @@ const Login = () => {
                     Remember me
                   </label>
                 </div>
-                <Button type="submit" className="w-full flex items-center gap-1.5 group">
-                  <LogIn className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <Button 
+                  type="submit" 
+                  className="w-full flex items-center gap-1.5 group"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogIn className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  )}
                   <span>Login as Admin</span>
                 </Button>
               </form>

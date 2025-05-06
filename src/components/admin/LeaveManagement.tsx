@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,72 +21,118 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Check, X, MessageSquare, Calendar } from "lucide-react";
+import { Check, X, MessageSquare, Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-// Mock data
-const mockPendingLeaves = [
-  {
-    id: "1",
-    student: { id: "S001", name: "Rahul Sharma" },
-    startDate: "2025-05-10",
-    endDate: "2025-05-12",
-    leaveType: "Medical Leave",
-    reason: "Doctor's appointment for routine check-up and follow-up consultation.",
-    status: "pending",
-    appliedOn: "2025-05-01",
-  },
-  {
-    id: "2",
-    student: { id: "S002", name: "Priya Patel" },
-    startDate: "2025-05-15",
-    endDate: "2025-05-18",
-    leaveType: "Family Emergency",
-    reason: "Need to attend a family function in my hometown.",
-    status: "pending",
-    appliedOn: "2025-05-05",
-  },
-  {
-    id: "3",
-    student: { id: "S003", name: "Amir Khan" },
-    startDate: "2025-05-20",
-    endDate: "2025-05-22",
-    leaveType: "Personal Leave",
-    reason: "Need some personal time off for mental well-being.",
-    status: "pending",
-    appliedOn: "2025-05-08",
-  }
-];
+import { leaveService, LeaveApplication } from "@/services/leaveService";
 
 const LeaveManagement = () => {
-  const [pendingLeaves, setPendingLeaves] = useState(mockPendingLeaves);
-  const [selectedLeave, setSelectedLeave] = useState<typeof mockPendingLeaves[0] | null>(null);
+  const [pendingLeaves, setPendingLeaves] = useState<LeaveApplication[]>([]);
+  const [selectedLeave, setSelectedLeave] = useState<LeaveApplication | null>(null);
   const [comment, setComment] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const handleViewDetails = (leave: typeof mockPendingLeaves[0]) => {
+  useEffect(() => {
+    const fetchPendingLeaves = async () => {
+      try {
+        const leaves = await leaveService.getPendingLeaves();
+        setPendingLeaves(leaves);
+      } catch (error) {
+        console.error("Error fetching pending leaves:", error);
+        toast.error("Failed to load pending leave applications");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPendingLeaves();
+    
+    // For demo purposes, add some mock data if none exists
+    setTimeout(() => {
+      if (pendingLeaves.length === 0) {
+        // Use the mock data that was originally in the component
+        const mockPendingLeaves = [
+          {
+            id: "1",
+            studentId: "S001",
+            studentName: "Rahul Sharma",
+            startDate: "2025-05-10",
+            endDate: "2025-05-12",
+            leaveType: "Medical Leave",
+            reason: "Doctor's appointment for routine check-up and follow-up consultation.",
+            status: "pending",
+            appliedOn: "2025-05-01",
+          },
+          {
+            id: "2",
+            studentId: "S002",
+            studentName: "Priya Patel",
+            startDate: "2025-05-15",
+            endDate: "2025-05-18",
+            leaveType: "Family Emergency",
+            reason: "Need to attend a family function in my hometown.",
+            status: "pending",
+            appliedOn: "2025-05-05",
+          },
+          {
+            id: "3",
+            studentId: "S003",
+            studentName: "Amir Khan",
+            startDate: "2025-05-20",
+            endDate: "2025-05-22",
+            leaveType: "Personal Leave",
+            reason: "Need some personal time off for mental well-being.",
+            status: "pending",
+            appliedOn: "2025-05-08",
+          }
+        ] as LeaveApplication[];
+        
+        setPendingLeaves(mockPendingLeaves);
+        setIsLoading(false);
+      }
+    }, 1000);
+  }, []);
+
+  const handleViewDetails = (leave: LeaveApplication) => {
     setSelectedLeave(leave);
     setComment("");
     setOpenDialog(true);
   };
 
-  const handleApproveLeave = () => {
+  const handleApproveLeave = async () => {
     if (!selectedLeave) return;
     
-    // In a real app, this would make an API call
-    setPendingLeaves(pendingLeaves.filter(leave => leave.id !== selectedLeave.id));
-    toast.success(`Leave application from ${selectedLeave.student.name} has been approved`);
-    setOpenDialog(false);
+    try {
+      setActionLoading(true);
+      await leaveService.updateLeaveStatus(selectedLeave.id, 'approved', comment);
+      setPendingLeaves(pendingLeaves.filter(leave => leave.id !== selectedLeave.id));
+      toast.success(`Leave application from ${selectedLeave.studentName} has been approved`);
+      setOpenDialog(false);
+    } catch (error) {
+      console.error("Error approving leave:", error);
+      toast.error("Failed to approve leave application");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleRejectLeave = () => {
+  const handleRejectLeave = async () => {
     if (!selectedLeave) return;
     
-    // In a real app, this would make an API call
-    setPendingLeaves(pendingLeaves.filter(leave => leave.id !== selectedLeave.id));
-    toast.success(`Leave application from ${selectedLeave.student.name} has been rejected`);
-    setOpenDialog(false);
+    try {
+      setActionLoading(true);
+      await leaveService.updateLeaveStatus(selectedLeave.id, 'rejected', comment);
+      setPendingLeaves(pendingLeaves.filter(leave => leave.id !== selectedLeave.id));
+      toast.success(`Leave application from ${selectedLeave.studentName} has been rejected`);
+      setOpenDialog(false);
+    } catch (error) {
+      console.error("Error rejecting leave:", error);
+      toast.error("Failed to reject leave application");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -98,10 +144,21 @@ const LeaveManagement = () => {
   };
 
   const filteredLeaves = pendingLeaves.filter(leave => 
-    leave.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    leave.student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    leave.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    leave.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
     leave.leaveType.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <Card className="w-full h-64 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-10 w-10 text-primary animate-spin" />
+          <p className="text-lg text-muted-foreground">Loading leave applications...</p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -139,8 +196,8 @@ const LeaveManagement = () => {
                 <TableBody>
                   {filteredLeaves.map((leave) => (
                     <TableRow key={leave.id}>
-                      <TableCell className="font-medium">{leave.student.name}</TableCell>
-                      <TableCell>{leave.student.id}</TableCell>
+                      <TableCell className="font-medium">{leave.studentName}</TableCell>
+                      <TableCell>{leave.studentId}</TableCell>
                       <TableCell>{leave.leaveType}</TableCell>
                       <TableCell>{formatDate(leave.startDate)}</TableCell>
                       <TableCell>{formatDate(leave.endDate)}</TableCell>
@@ -177,7 +234,7 @@ const LeaveManagement = () => {
             <DialogHeader>
               <DialogTitle>Leave Application Review</DialogTitle>
               <DialogDescription>
-                Application from {selectedLeave.student.name} ({selectedLeave.student.id})
+                Application from {selectedLeave.studentName} ({selectedLeave.studentId})
               </DialogDescription>
             </DialogHeader>
             
@@ -209,6 +266,12 @@ const LeaveManagement = () => {
                 <p className="text-sm mt-1 p-2 border rounded-md bg-muted">{selectedLeave.reason}</p>
               </div>
               
+              {selectedLeave.isEmergency && (
+                <div className="bg-red-50 border border-red-100 p-2 rounded-md flex items-center">
+                  <span className="text-red-500 text-sm font-medium">This is marked as an emergency leave</span>
+                </div>
+              )}
+              
               <div>
                 <Label htmlFor="comment">Comment (Optional)</Label>
                 <Textarea
@@ -217,6 +280,7 @@ const LeaveManagement = () => {
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Add your comments here..."
                   className="mt-1"
+                  disabled={actionLoading}
                 />
               </div>
             </div>
@@ -227,16 +291,18 @@ const LeaveManagement = () => {
                 variant="destructive"
                 onClick={handleRejectLeave}
                 className="flex items-center gap-1.5"
+                disabled={actionLoading}
               >
-                <X className="h-4 w-4" />
+                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                 <span>Reject</span>
               </Button>
               <Button
                 type="button"
                 onClick={handleApproveLeave}
                 className="flex items-center gap-1.5"
+                disabled={actionLoading}
               >
-                <Check className="h-4 w-4" />
+                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 <span>Approve</span>
               </Button>
             </DialogFooter>

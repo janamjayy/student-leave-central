@@ -1,12 +1,13 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, School, KeyRound } from "lucide-react";
+import { User, Mail, School, KeyRound, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 const Signup = () => {
   const [name, setName] = useState("");
@@ -14,8 +15,12 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [studentId, setStudentId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate password match
@@ -24,14 +29,14 @@ const Signup = () => {
       return;
     }
     
-    // In a real application with connected database, you would:
-    // 1. Validate all inputs
-    // 2. Make API call to register user
-    // 3. Store user session/token
-    // 4. Redirect to login or dashboard
-    
-    toast.success("Account created successfully! Please check your email to verify.");
-    console.log({ name, email, password, studentId });
+    try {
+      setIsLoading(true);
+      await signup(name, email, password, studentId);
+      navigate('/my-leaves');
+    } catch (error) {
+      // Error is already handled in the auth context
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,6 +61,7 @@ const Signup = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -70,6 +76,7 @@ const Signup = () => {
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -86,6 +93,7 @@ const Signup = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                   className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -101,6 +109,7 @@ const Signup = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -115,6 +124,7 @@ const Signup = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -123,8 +133,13 @@ const Signup = () => {
             <Button 
               type="submit" 
               className="w-full flex items-center gap-1.5 mt-6 group hover:scale-[1.02] transition-all"
+              disabled={isLoading}
             >
-              <User className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <User className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              )}
               <span>Create Account</span>
             </Button>
           </form>
