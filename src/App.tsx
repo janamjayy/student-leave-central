@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeProvider";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -52,46 +53,48 @@ const StudentRoute = ({ children }: { children: React.ReactNode }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            
-            {/* Protected Student Routes */}
-            <Route path="/apply-leave" element={
-              <StudentRoute>
-                <ApplyLeave />
-              </StudentRoute>
-            } />
-            <Route path="/my-leaves" element={
-              <StudentRoute>
-                <MyLeaves />
-              </StudentRoute>
-            } />
-            
-            {/* Protected Admin Routes */}
-            <Route path="/admin/dashboard" element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            } />
-            <Route path="/admin/leaves" element={
-              <AdminRoute>
-                <AdminLeaves />
-              </AdminRoute>
-            } />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
+    <ThemeProvider defaultTheme="light">
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              
+              {/* Protected Student Routes */}
+              <Route path="/apply-leave" element={
+                <StudentRoute>
+                  <ApplyLeave />
+                </StudentRoute>
+              } />
+              <Route path="/my-leaves" element={
+                <StudentRoute>
+                  <MyLeaves />
+                </StudentRoute>
+              } />
+              
+              {/* Protected Admin Routes */}
+              <Route path="/admin/dashboard" element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } />
+              <Route path="/admin/leaves" element={
+                <AdminRoute>
+                  <AdminLeaves />
+                </AdminRoute>
+              } />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
