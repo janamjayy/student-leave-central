@@ -17,7 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 const Navbar = () => {
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const { user, profile, logout, isAdmin, isFaculty, isStudent } = useAuth();
   const navigate = useNavigate();
