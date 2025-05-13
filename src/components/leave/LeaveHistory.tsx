@@ -11,6 +11,7 @@ import { useLeaveHistory } from "@/hooks/useLeaveHistory";
 import LeaveFilters from "./LeaveFilters";
 import LeavesTable from "./LeavesTable";
 import EmptyLeaveState from "./EmptyLeaveState";
+import { useAuth } from "@/context/AuthContext";
 
 const LeaveHistory = () => {
   const {
@@ -23,6 +24,9 @@ const LeaveHistory = () => {
     formatDate,
     hasFilters
   } = useLeaveHistory();
+
+  const { profile } = useAuth();
+  const isStudent = profile?.role === 'student';
 
   if (loading) {
     return (
@@ -38,8 +42,14 @@ const LeaveHistory = () => {
   return (
     <Card className="w-full shadow-lg animate-fade-in">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold">My Leave History</CardTitle>
-        <CardDescription>View the status of all your leave requests</CardDescription>
+        <CardTitle className="text-2xl font-bold">
+          {isStudent ? "My Leave History" : "Leave Applications"}
+        </CardTitle>
+        <CardDescription>
+          {isStudent 
+            ? "View the status of all your leave requests" 
+            : "View and manage all leave applications"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <LeaveFilters

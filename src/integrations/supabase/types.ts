@@ -9,16 +9,160 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      leave_applications: {
+        Row: {
+          applied_on: string
+          attachment_url: string | null
+          comments: string | null
+          end_date: string
+          id: string
+          is_emergency: boolean | null
+          leave_type: string
+          reason: string
+          reviewed_by: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["leave_status"] | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          applied_on?: string
+          attachment_url?: string | null
+          comments?: string | null
+          end_date: string
+          id?: string
+          is_emergency?: boolean | null
+          leave_type: string
+          reason: string
+          reviewed_by?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["leave_status"] | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          applied_on?: string
+          attachment_url?: string | null
+          comments?: string | null
+          end_date?: string
+          id?: string
+          is_emergency?: boolean | null
+          leave_type?: string
+          reason?: string
+          reviewed_by?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["leave_status"] | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_applications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          related_to: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          related_to?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          related_to?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_to_fkey"
+            columns: ["related_to"]
+            isOneToOne: false
+            referencedRelation: "leave_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          department: string | null
+          email: string
+          full_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          student_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          email: string
+          full_name: string
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          student_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          student_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_unread_notification_count: {
+        Args: { user_id: string }
+        Returns: number
+      }
     }
     Enums: {
-      [_ in never]: never
+      leave_status: "pending" | "approved" | "rejected"
+      user_role: "student" | "admin" | "faculty"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +277,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      leave_status: ["pending", "approved", "rejected"],
+      user_role: ["student", "admin", "faculty"],
+    },
   },
 } as const

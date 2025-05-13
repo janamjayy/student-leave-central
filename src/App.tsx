@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { NotificationsProvider } from "./context/NotificationsContext";
 import { ThemeProvider } from "./context/ThemeProvider";
 
 import Index from "./pages/Index";
@@ -22,19 +23,19 @@ const queryClient = new QueryClient();
 // Protected route component
 const ProtectedRoute = ({ 
   children, 
-  allowedRoles = ['student', 'admin'], 
+  allowedRoles = ['student', 'admin', 'faculty'], 
   redirectPath = '/login' 
 }: { 
   children: React.ReactNode, 
-  allowedRoles?: ('student' | 'admin')[], 
+  allowedRoles?: ('student' | 'admin' | 'faculty')[], 
   redirectPath?: string 
 }) => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   
   // Show loading or redirect if not authenticated or not authorized
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!user || !profile || !allowedRoles.includes(profile.role)) {
     return <Navigate to={redirectPath} replace />;
   }
   
@@ -44,6 +45,16 @@ const ProtectedRoute = ({
 // Admin only route
 const AdminRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute allowedRoles={['admin']}>{children}</ProtectedRoute>
+);
+
+// Faculty only route
+const FacultyRoute = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute allowedRoles={['faculty']}>{children}</ProtectedRoute>
+);
+
+// Admin and Faculty route
+const StaffRoute = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute allowedRoles={['admin', 'faculty']}>{children}</ProtectedRoute>
 );
 
 // Student only route
@@ -56,42 +67,44 @@ const App = () => (
     <ThemeProvider defaultTheme="light">
       <TooltipProvider>
         <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              
-              {/* Protected Student Routes */}
-              <Route path="/apply-leave" element={
-                <StudentRoute>
-                  <ApplyLeave />
-                </StudentRoute>
-              } />
-              <Route path="/my-leaves" element={
-                <StudentRoute>
-                  <MyLeaves />
-                </StudentRoute>
-              } />
-              
-              {/* Protected Admin Routes */}
-              <Route path="/admin/dashboard" element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              } />
-              <Route path="/admin/leaves" element={
-                <AdminRoute>
-                  <AdminLeaves />
-                </AdminRoute>
-              } />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <NotificationsProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                
+                {/* Protected Student Routes */}
+                <Route path="/apply-leave" element={
+                  <StudentRoute>
+                    <ApplyLeave />
+                  </StudentRoute>
+                } />
+                <Route path="/my-leaves" element={
+                  <ProtectedRoute>
+                    <MyLeaves />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Protected Admin Routes */}
+                <Route path="/admin/dashboard" element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/leaves" element={
+                  <StaffRoute>
+                    <AdminLeaves />
+                  </StaffRoute>
+                } />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </NotificationsProvider>
         </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>

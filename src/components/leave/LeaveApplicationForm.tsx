@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -9,67 +10,79 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, FileText, Check, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, FileText, Check, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { leaveService } from "@/services/leaveService";
+import { supabaseService } from "@/services/supabaseService";
+import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const LeaveApplicationForm = () => {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [leaveType, setLeaveType] = useState("");
   const [reason, setReason] = useState("");
-  const [attachmentName, setAttachmentName] = useState("");
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isEmergency, setIsEmergency] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
     if (!startDate || !endDate || !leaveType || !reason) {
-      toast.error("Please fill in all required fields");
+      setError("Please fill in all required fields");
       return;
     }
     
     if (startDate > endDate) {
-      toast.error("The return date cannot be earlier than the leave start date");
+      setError("The return date cannot be earlier than the leave start date");
       return;
     }
     
     if (!user) {
-      toast.error("You must be logged in to apply for leave");
+      setError("You must be logged in to apply for leave");
       return;
     }
     
     try {
       setIsSubmitting(true);
       
-      await leaveService.submitLeave({
-        studentId: user.studentId || user.id,
-        studentName: user.name,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        leaveType,
+      let attachmentUrl = undefined;
+      if (attachmentFile) {
+        const { url, error: uploadError } = await supabaseService.uploadAttachment(attachmentFile, user.id);
+        if (uploadError) {
+          throw new Error(`File upload error: ${uploadError}`);
+        }
+        attachmentUrl = url || undefined;
+      }
+      
+      const { data, error } = await supabaseService.submitLeave({
+        student_id: user.id,
+        leave_type: leaveType,
         reason,
-        isEmergency,
-        attachmentUrl: attachmentName ? `mock_url_for_${attachmentName}` : undefined
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        is_emergency: isEmergency,
+        attachment_url: attachmentUrl
       });
+      
+      if (error) {
+        throw new Error(error);
+      }
       
       toast.success("Your leave application has been successfully submitted!");
       
-      // Reset form
-      setStartDate(undefined);
-      setEndDate(undefined);
-      setLeaveType("");
-      setReason("");
-      setAttachmentName("");
-      setIsEmergency(false);
-    } catch (error) {
-      console.error("Error submitting leave application:", error);
-      toast.error("Error submitting application. Please try again.");
+      // Redirect to leave history page
+      navigate('/my-leaves');
+    } catch (err) {
+      console.error("Error submitting leave application:", err);
+      setError(err instanceof Error ? err.message : "Error submitting application. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -78,8 +91,11 @@ const LeaveApplicationForm = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAttachmentName(file.name);
-      // In a real application with Supabase, this would upload the file to storage
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File is too large. Maximum size is 5MB.");
+        return;
+      }
+      setAttachmentFile(file);
     }
   };
 
@@ -99,6 +115,14 @@ const LeaveApplicationForm = () => {
           <CardDescription>Fill out the form to apply for a leave</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -221,7 +245,7 @@ const LeaveApplicationForm = () => {
                   disabled={isSubmitting}
                 />
                 <span className="text-sm text-gray-500">
-                  {attachmentName || "No file selected"}
+                  {attachmentFile ? attachmentFile.name : "No file selected"}
                 </span>
               </div>
               <p className="text-xs text-gray-500">
