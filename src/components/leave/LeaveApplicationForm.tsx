@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -31,12 +30,12 @@ const LeaveApplicationForm = () => {
     e.preventDefault();
     
     if (!startDate || !endDate || !leaveType || !reason) {
-      toast.error("कृपया सभी आवश्यक जानकारी भरें");
+      toast.error("Please fill in all required fields");
       return;
     }
     
     if (startDate > endDate) {
-      toast.error("वापसी की तिथि छुट्टी शुरू होने की तिथि से पहले नहीं हो सकती");
+      toast.error("The return date cannot be earlier than the leave start date");
       return;
     }
     
@@ -59,7 +58,7 @@ const LeaveApplicationForm = () => {
         attachmentUrl: attachmentName ? `mock_url_for_${attachmentName}` : undefined
       });
       
-      toast.success("आपका छुट्टी का आवेदन सफलतापूर्वक जमा किया गया है!");
+      toast.success("Your leave application has been successfully submitted!");
       
       // Reset form
       setStartDate(undefined);
@@ -70,7 +69,7 @@ const LeaveApplicationForm = () => {
       setIsEmergency(false);
     } catch (error) {
       console.error("Error submitting leave application:", error);
-      toast.error("आवेदन जमा करने में त्रुटि। कृपया पुनः प्रयास करें।");
+      toast.error("Error submitting application. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -85,25 +84,25 @@ const LeaveApplicationForm = () => {
   };
 
   const leaveTypes = [
-    "चिकित्सा अवकाश",
-    "पारिवारिक आपातकाल",
-    "शैक्षिक कार्यक्रम",
-    "व्यक्तिगत कारण",
-    "अन्य"
+    "Medical Leave",
+    "Family Emergency",
+    "Educational Program",
+    "Personal Reasons",
+    "Other"
   ];
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
       <Card className="w-full shadow-lg">
         <CardHeader className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-t-lg">
-          <CardTitle className="text-2xl font-bold text-gray-800">छुट्टी के लिए आवेदन</CardTitle>
-          <CardDescription>छुट्टी के लिए आवेदन करने के लिए फॉर्म भरें</CardDescription>
+          <CardTitle className="text-2xl font-bold text-gray-800">Leave Application</CardTitle>
+          <CardDescription>Fill out the form to apply for a leave</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="start-date" className="text-gray-700">छुट्टी शुरू होने की तिथि</Label>
+                <Label htmlFor="start-date" className="text-gray-700">Leave Start Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -114,7 +113,7 @@ const LeaveApplicationForm = () => {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "PPP") : "तिथि चुनें"}
+                      {startDate ? format(startDate, "PPP") : "Select Date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 pointer-events-auto">
@@ -131,7 +130,7 @@ const LeaveApplicationForm = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="end-date" className="text-gray-700">वापसी की तिथि</Label>
+                <Label htmlFor="end-date" className="text-gray-700">Return Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -142,7 +141,7 @@ const LeaveApplicationForm = () => {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "PPP") : "तिथि चुनें"}
+                      {endDate ? format(endDate, "PPP") : "Select Date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 pointer-events-auto">
@@ -162,10 +161,10 @@ const LeaveApplicationForm = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="leave-type" className="text-gray-700">छुट्टी का प्रकार</Label>
+              <Label htmlFor="leave-type" className="text-gray-700">Leave Type</Label>
               <Select value={leaveType} onValueChange={setLeaveType}>
                 <SelectTrigger className="border-gray-300 hover:border-blue-500 transition-colors">
-                  <SelectValue placeholder="छुट्टी का प्रकार चुनें" />
+                  <SelectValue placeholder="Select Leave Type" />
                 </SelectTrigger>
                 <SelectContent>
                   {leaveTypes.map((type) => (
@@ -178,10 +177,10 @@ const LeaveApplicationForm = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="reason" className="text-gray-700">छुट्टी का कारण</Label>
+              <Label htmlFor="reason" className="text-gray-700">Reason for Leave</Label>
               <Textarea
                 id="reason"
-                placeholder="कृपया अपनी छुट्टी के बारे में विस्तार से बताएं"
+                placeholder="Please provide details about your leave"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="min-h-[120px] border-gray-300 hover:border-blue-500 focus:border-blue-500 transition-colors"
@@ -199,19 +198,19 @@ const LeaveApplicationForm = () => {
                 htmlFor="emergency"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                यह एक आपातकालीन छुट्टी है
+                This is an emergency leave
               </label>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="attachment" className="text-gray-700">सहायक दस्तावेज़ (वैकल्पिक)</Label>
+              <Label htmlFor="attachment" className="text-gray-700">Supporting Documents (Optional)</Label>
               <div className="flex items-center gap-2">
                 <Label
                   htmlFor="attachment"
                   className="cursor-pointer border rounded py-2 px-4 inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                 >
                   <FileText className="h-4 w-4" />
-                  <span>फ़ाइल चुनें</span>
+                  <span>Choose File</span>
                 </Label>
                 <Input
                   id="attachment"
@@ -222,11 +221,11 @@ const LeaveApplicationForm = () => {
                   disabled={isSubmitting}
                 />
                 <span className="text-sm text-gray-500">
-                  {attachmentName || "कोई फ़ाइल नहीं चुनी गई"}
+                  {attachmentName || "No file selected"}
                 </span>
               </div>
               <p className="text-xs text-gray-500">
-                स्वीकृत फ़ाइल प्रकार: PDF, JPG, JPEG, PNG, DOC, DOCX. अधिकतम फ़ाइल का साइज़: 5MB.
+                Accepted file types: PDF, JPG, JPEG, PNG, DOC, DOCX. Maximum file size: 5MB.
               </p>
             </div>
           </form>
@@ -242,7 +241,7 @@ const LeaveApplicationForm = () => {
             ) : (
               <Check className="h-4 w-4" />
             )}
-            <span>आवेदन जमा करें</span>
+            <span>Submit Application</span>
           </Button>
         </CardFooter>
       </Card>
