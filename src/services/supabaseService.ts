@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { User, Session } from "@supabase/supabase-js";
@@ -191,7 +190,7 @@ export const supabaseService = {
       return [];
     }
 
-    return data as LeaveApplication[];
+    return data as unknown as LeaveApplication[];
   },
 
   getPendingLeaves: async (): Promise<LeaveApplication[]> => {
@@ -209,7 +208,7 @@ export const supabaseService = {
       return [];
     }
 
-    return data as LeaveApplication[];
+    return data as unknown as LeaveApplication[];
   },
 
   updateLeaveStatus: async (leaveId: string, status: 'approved' | 'rejected', reviewerId: string, comments?: string): Promise<{ success: boolean; error: string | null }> => {

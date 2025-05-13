@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut, User, BookOpen, CalendarCheck } from "lucide-react";
-import ThemeToggle from "./ThemeToggle";
-import { useMobile } from "@/hooks/use-mobile";
+import { ThemeToggle } from "./ThemeToggle";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 
