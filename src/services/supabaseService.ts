@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { User, Session } from "@supabase/supabase-js";
@@ -16,6 +17,7 @@ export interface LeaveApplication {
   reviewed_by?: string;
   applied_on: string;
   updated_at: string;
+  student_name: string;
   student?: {
     full_name: string;
     student_id: string;
@@ -126,10 +128,33 @@ export const supabaseService = {
   },
 
   // Leave application functions
-  submitLeave: async (leaveData: Omit<LeaveApplication, 'id' | 'applied_on' | 'status' | 'updated_at'>): Promise<{ data: LeaveApplication | null; error: string | null }> => {
+  submitLeave: async (leaveData: Omit<LeaveApplication, 'id' | 'applied_on' | 'status' | 'updated_at' | 'student_name'>): Promise<{ data: LeaveApplication | null; error: string | null }> => {
+    // First, get the current user's profile to get their name
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { data: null, error: "User not authenticated" };
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Error fetching user profile:", profileError?.message);
+      return { data: null, error: "Could not fetch user profile" };
+    }
+
+    // Include student_name in the data to insert
+    const insertData = {
+      ...leaveData,
+      student_name: profile.full_name
+    };
+
     const { data, error } = await supabase
       .from('leave_applications')
-      .insert([leaveData])
+      .insert([insertData])
       .select()
       .single();
 
