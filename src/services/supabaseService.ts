@@ -1,4 +1,5 @@
 
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { User, Session } from "@supabase/supabase-js";
@@ -154,7 +155,7 @@ export const supabaseService = {
 
     const { data, error } = await supabase
       .from('leave_applications')
-      .insert([insertData])
+      .insert(insertData)
       .select()
       .single();
 
@@ -330,3 +331,4 @@ export const supabaseService = {
       .subscribe();
   }
 };
+
