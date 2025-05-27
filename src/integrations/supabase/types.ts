@@ -23,6 +23,7 @@ export type Database = {
           start_date: string
           status: Database["public"]["Enums"]["leave_status"] | null
           student_id: string
+          student_name: string
           updated_at: string
         }
         Insert: {
@@ -38,6 +39,7 @@ export type Database = {
           start_date: string
           status?: Database["public"]["Enums"]["leave_status"] | null
           student_id: string
+          student_name: string
           updated_at?: string
         }
         Update: {
@@ -53,19 +55,13 @@ export type Database = {
           start_date?: string
           status?: Database["public"]["Enums"]["leave_status"] | null
           student_id?: string
+          student_name?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "leave_applications_reviewed_by_fkey"
             columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leave_applications_student_id_fkey"
-            columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
