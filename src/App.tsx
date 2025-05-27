@@ -16,6 +16,7 @@ import ApplyLeave from "./pages/ApplyLeave";
 import MyLeaves from "./pages/MyLeaves";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLeaves from "./pages/admin/Leaves";
+import AdminUsers from "./pages/admin/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,7 +33,6 @@ const ProtectedRoute = ({
 }) => {
   const { user, profile, loading } = useAuth();
   
-  // Show loading or redirect if not authenticated or not authorized
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   
   if (!user || !profile || !allowedRoles.includes(profile.role)) {
@@ -42,22 +42,18 @@ const ProtectedRoute = ({
   return <>{children}</>;
 };
 
-// Admin only route
 const AdminRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute allowedRoles={['admin']}>{children}</ProtectedRoute>
 );
 
-// Faculty only route
 const FacultyRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute allowedRoles={['faculty']}>{children}</ProtectedRoute>
 );
 
-// Admin and Faculty route
 const StaffRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute allowedRoles={['admin', 'faculty']}>{children}</ProtectedRoute>
 );
 
-// Student only route
 const StudentRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute allowedRoles={['student']}>{children}</ProtectedRoute>
 );
@@ -99,6 +95,11 @@ const App = () => (
                   <StaffRoute>
                     <AdminLeaves />
                   </StaffRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <AdminRoute>
+                    <AdminUsers />
+                  </AdminRoute>
                 } />
                 
                 <Route path="*" element={<NotFound />} />

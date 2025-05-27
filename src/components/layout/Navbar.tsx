@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -10,7 +9,7 @@ import {
   SheetClose 
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, BookOpen, CalendarCheck } from "lucide-react";
+import { Menu, LogOut, User, BookOpen, CalendarCheck, Users } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
@@ -60,6 +59,11 @@ const Navbar = () => {
                     Manage Leaves
                   </Link>
                 </>
+              )}
+              {isAdmin() && (
+                <Link to="/admin/users" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                  User Management
+                </Link>
               )}
               <NotificationCenter />
               <ThemeToggle />
@@ -161,6 +165,18 @@ const Navbar = () => {
                             </Link>
                           </SheetClose>
                         </>
+                      )}
+                      {isAdmin() && (
+                        <SheetClose asChild>
+                          <Link 
+                            to="/admin/users" 
+                            className="flex items-center py-2 font-medium transition-colors hover:text-foreground/80"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <Users className="mr-2 h-5 w-5" />
+                            User Management
+                          </Link>
+                        </SheetClose>
                       )}
                       <Button 
                         variant="destructive" 

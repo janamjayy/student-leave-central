@@ -1,5 +1,3 @@
-
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { User, Session } from "@supabase/supabase-js";
@@ -128,9 +126,42 @@ export const supabaseService = {
     return { error: error ? error.message : null };
   },
 
+  // User Management functions
+  getAllUsers: async (): Promise<UserProfile[]> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching users:", error.message);
+      return [];
+    }
+
+    return data as UserProfile[];
+  },
+
+  updateUserRole: async (userId: string, newRole: 'faculty' | 'student'): Promise<{ success: boolean; error: string | null }> => {
+    // Only allow updating to faculty or student roles, not admin
+    if (newRole !== 'faculty' && newRole !== 'student') {
+      return { success: false, error: "Invalid role. Only 'faculty' and 'student' roles can be assigned." };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    if (error) {
+      console.error("Error updating user role:", error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, error: null };
+  },
+
   // Leave application functions
   submitLeave: async (leaveData: Omit<LeaveApplication, 'id' | 'applied_on' | 'status' | 'updated_at' | 'student_name'>): Promise<{ data: LeaveApplication | null; error: string | null }> => {
-    // First, get the current user's profile to get their name
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { data: null, error: "User not authenticated" };
@@ -147,7 +178,6 @@ export const supabaseService = {
       return { data: null, error: "Could not fetch user profile" };
     }
 
-    // Include student_name in the data to insert
     const insertData = {
       ...leaveData,
       student_name: profile.full_name
@@ -331,4 +361,3 @@ export const supabaseService = {
       .subscribe();
   }
 };
-
