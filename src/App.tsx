@@ -14,6 +14,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ApplyLeave from "./pages/ApplyLeave";
 import MyLeaves from "./pages/MyLeaves";
+import Calendar from "./pages/Calendar";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLeaves from "./pages/admin/Leaves";
 import AdminUsers from "./pages/admin/Users";
@@ -82,6 +83,11 @@ const App = () => (
                 <Route path="/my-leaves" element={
                   <ProtectedRoute>
                     <MyLeaves />
+                  </ProtectedRoute>
+                } />
+                <Route path="/calendar" element={
+                  <ProtectedRoute>
+                    <Calendar />
                   </ProtectedRoute>
                 } />
                 
