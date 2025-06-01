@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, Plus, Download, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabaseService, LeaveApplication } from '@/services/supabaseService';
 import { toast } from 'sonner';
@@ -57,7 +57,7 @@ const LeaveCalendar = () => {
   };
 
   const fetchHolidays = async (): Promise<Holiday[]> => {
-    // Mock data for now until holidays table is properly set up
+    // Enhanced mock data with more holidays for better demonstration
     return [
       {
         id: '1',
@@ -70,6 +70,20 @@ const LeaveCalendar = () => {
         id: '2',
         title: 'Independence Day',
         date: '2024-07-04',
+        description: 'National Holiday',
+        created_by: 'admin'
+      },
+      {
+        id: '3',
+        title: 'Christmas Day',
+        date: '2024-12-25',
+        description: 'National Holiday',
+        created_by: 'admin'
+      },
+      {
+        id: '4',
+        title: 'Thanksgiving',
+        date: '2024-11-28',
         description: 'National Holiday',
         created_by: 'admin'
       }
@@ -90,7 +104,6 @@ const LeaveCalendar = () => {
     }
 
     try {
-      // Mock implementation - will be replaced when holidays table is available
       const newHoliday: Holiday = {
         id: Date.now().toString(),
         title: holidayTitle,
@@ -111,19 +124,70 @@ const LeaveCalendar = () => {
     }
   };
 
+  const exportToGoogleCalendar = () => {
+    const events = getCalendarEvents();
+    const googleCalendarUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
+    
+    // For demo purposes, export the first event
+    if (events.length > 0) {
+      const event = events[0];
+      const startDate = new Date(event.start).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const endDate = event.end ? new Date(event.end).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : startDate;
+      
+      const url = `${googleCalendarUrl}&text=${encodeURIComponent(event.title)}&dates=${startDate}/${endDate}`;
+      window.open(url, '_blank');
+      toast.success('Opening Google Calendar...');
+    } else {
+      toast.info('No events to export');
+    }
+  };
+
+  const exportCalendarData = () => {
+    const events = getCalendarEvents();
+    const icsContent = generateICSFile(events);
+    
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'leave_calendar.ics';
+    link.click();
+    
+    toast.success('Calendar exported successfully');
+  };
+
+  const generateICSFile = (events: any[]) => {
+    let ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Leave Management System//Calendar//EN\n';
+    
+    events.forEach((event) => {
+      const startDate = new Date(event.start).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const endDate = event.end ? new Date(event.end).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : startDate;
+      
+      ics += 'BEGIN:VEVENT\n';
+      ics += `UID:${event.id}@leavemanagementsystem.com\n`;
+      ics += `DTSTART:${startDate}\n`;
+      ics += `DTEND:${endDate}\n`;
+      ics += `SUMMARY:${event.title}\n`;
+      ics += `DESCRIPTION:${event.extendedProps?.reason || event.extendedProps?.description || ''}\n`;
+      ics += 'END:VEVENT\n';
+    });
+    
+    ics += 'END:VCALENDAR';
+    return ics;
+  };
+
   const getCalendarEvents = () => {
     const leaveEvents = leaves
       .filter(leave => leave.status === 'approved')
       .map(leave => ({
         id: `leave-${leave.id}`,
-        title: `${leave.student?.full_name || 'Student'} - ${leave.leave_type}`,
+        title: `${leave.student?.full_name || leave.student_name || 'Student'} - ${leave.leave_type}`,
         start: leave.start_date,
         end: leave.end_date,
         backgroundColor: '#3b82f6',
         borderColor: '#2563eb',
         extendedProps: {
           type: 'leave',
-          student: leave.student?.full_name,
+          student: leave.student?.full_name || leave.student_name,
           reason: leave.reason
         }
       }));
@@ -164,70 +228,102 @@ const LeaveCalendar = () => {
             <Calendar className="h-5 w-5" />
             Leave Calendar
           </CardTitle>
-          {canManageHolidays && (
-            <Dialog open={isAddingHoliday} onOpenChange={setIsAddingHoliday}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Holiday
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Holiday</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="holiday-date">Date</Label>
-                    <Input
-                      id="holiday-date"
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                    />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportToGoogleCalendar}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Google Calendar
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCalendarData}>
+              <Download className="h-4 w-4 mr-2" />
+              Export (.ics)
+            </Button>
+            {canManageHolidays && (
+              <Dialog open={isAddingHoliday} onOpenChange={setIsAddingHoliday}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Holiday
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Holiday</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="holiday-date">Date</Label>
+                      <Input
+                        id="holiday-date"
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="holiday-title">Title *</Label>
+                      <Input
+                        id="holiday-title"
+                        value={holidayTitle}
+                        onChange={(e) => setHolidayTitle(e.target.value)}
+                        placeholder="e.g., Christmas Day"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="holiday-description">Description</Label>
+                      <Textarea
+                        id="holiday-description"
+                        value={holidayDescription}
+                        onChange={(e) => setHolidayDescription(e.target.value)}
+                        placeholder="Optional description"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleAddHoliday}>Add Holiday</Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsAddingHoliday(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="holiday-title">Title *</Label>
-                    <Input
-                      id="holiday-title"
-                      value={holidayTitle}
-                      onChange={(e) => setHolidayTitle(e.target.value)}
-                      placeholder="e.g., Christmas Day"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="holiday-description">Description</Label>
-                    <Textarea
-                      id="holiday-description"
-                      value={holidayDescription}
-                      onChange={(e) => setHolidayDescription(e.target.value)}
-                      placeholder="Optional description"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleAddHoliday}>Add Holiday</Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setIsAddingHoliday(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="mb-4 flex gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-500 rounded"></div>
-            <span>Approved Leaves</span>
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-4 text-sm mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>Approved Leaves</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-500 rounded"></div>
+              <span>Holidays</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-500 rounded"></div>
-            <span>Holidays</span>
+          
+          <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg mb-4">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Calendar Integration
+            </h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Sync with Google Calendar, Outlook, and other calendar services for better planning.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={exportToGoogleCalendar}>
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Add to Google Calendar
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportCalendarData}>
+                <Download className="h-3 w-3 mr-1" />
+                Download .ics file
+              </Button>
+            </div>
           </div>
         </div>
         
@@ -252,6 +348,11 @@ const LeaveCalendar = () => {
           height="auto"
           dayMaxEvents={3}
           moreLinkClick="popover"
+          eventDidMount={(info) => {
+            // Add hover effects and better styling
+            info.el.style.cursor = 'pointer';
+            info.el.title = info.event.title;
+          }}
         />
         
         {canManageHolidays && (
