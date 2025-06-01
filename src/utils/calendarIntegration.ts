@@ -85,6 +85,16 @@ export const createOutlookCalendarUrl = (event: CalendarEvent): string => {
   return `${baseUrl}?${params.toString()}`;
 };
 
+export const exportToGoogleCalendar = (event: CalendarEvent): void => {
+  const googleUrl = createGoogleCalendarUrl(event);
+  window.open(googleUrl, '_blank');
+};
+
+export const exportToOutlook = (event: CalendarEvent): void => {
+  const outlookUrl = createOutlookCalendarUrl(event);
+  window.open(outlookUrl, '_blank');
+};
+
 export const downloadICSFile = (events: CalendarEvent[], filename: string = 'calendar-export.ics'): void => {
   const icsContent = generateICSFile(events);
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
