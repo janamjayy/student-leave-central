@@ -13,6 +13,7 @@ import { Calendar, Plus, Download, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabaseService, LeaveApplication } from '@/services/supabaseService';
 import { toast } from 'sonner';
+import { exportToGoogleCalendar, exportToOutlook, generateICSFile } from '@/utils/calendarIntegration';
 
 interface Holiday {
   id: string;
@@ -20,6 +21,21 @@ interface Holiday {
   date: string;
   description?: string;
   created_by: string;
+}
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end?: string;
+  backgroundColor: string;
+  borderColor: string;
+  extendedProps: {
+    type: 'leave' | 'holiday';
+    student?: string;
+    reason?: string;
+    description?: string;
+  };
 }
 
 const LeaveCalendar = () => {
@@ -124,19 +140,21 @@ const LeaveCalendar = () => {
     }
   };
 
-  const exportToGoogleCalendar = () => {
+  const handleExportToGoogleCalendar = () => {
     const events = getCalendarEvents();
-    const googleCalendarUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
-    
-    // For demo purposes, export the first event
     if (events.length > 0) {
-      const event = events[0];
-      const startDate = new Date(event.start).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      const endDate = event.end ? new Date(event.end).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : startDate;
-      
-      const url = `${googleCalendarUrl}&text=${encodeURIComponent(event.title)}&dates=${startDate}/${endDate}`;
-      window.open(url, '_blank');
+      exportToGoogleCalendar(events[0]);
       toast.success('Opening Google Calendar...');
+    } else {
+      toast.info('No events to export');
+    }
+  };
+
+  const handleExportToOutlook = () => {
+    const events = getCalendarEvents();
+    if (events.length > 0) {
+      exportToOutlook(events[0]);
+      toast.success('Opening Outlook...');
     } else {
       toast.info('No events to export');
     }
@@ -155,28 +173,8 @@ const LeaveCalendar = () => {
     toast.success('Calendar exported successfully');
   };
 
-  const generateICSFile = (events: any[]) => {
-    let ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Leave Management System//Calendar//EN\n';
-    
-    events.forEach((event) => {
-      const startDate = new Date(event.start).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      const endDate = event.end ? new Date(event.end).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : startDate;
-      
-      ics += 'BEGIN:VEVENT\n';
-      ics += `UID:${event.id}@leavemanagementsystem.com\n`;
-      ics += `DTSTART:${startDate}\n`;
-      ics += `DTEND:${endDate}\n`;
-      ics += `SUMMARY:${event.title}\n`;
-      ics += `DESCRIPTION:${event.extendedProps?.reason || event.extendedProps?.description || ''}\n`;
-      ics += 'END:VEVENT\n';
-    });
-    
-    ics += 'END:VCALENDAR';
-    return ics;
-  };
-
-  const getCalendarEvents = () => {
-    const leaveEvents = leaves
+  const getCalendarEvents = (): CalendarEvent[] => {
+    const leaveEvents: CalendarEvent[] = leaves
       .filter(leave => leave.status === 'approved')
       .map(leave => ({
         id: `leave-${leave.id}`,
@@ -186,20 +184,20 @@ const LeaveCalendar = () => {
         backgroundColor: '#3b82f6',
         borderColor: '#2563eb',
         extendedProps: {
-          type: 'leave',
+          type: 'leave' as const,
           student: leave.student?.full_name || leave.student_name,
           reason: leave.reason
         }
       }));
 
-    const holidayEvents = holidays.map(holiday => ({
+    const holidayEvents: CalendarEvent[] = holidays.map(holiday => ({
       id: `holiday-${holiday.id}`,
       title: holiday.title,
       start: holiday.date,
       backgroundColor: '#ef4444',
       borderColor: '#dc2626',
       extendedProps: {
-        type: 'holiday',
+        type: 'holiday' as const,
         description: holiday.description
       }
     }));
@@ -229,9 +227,13 @@ const LeaveCalendar = () => {
             Leave Calendar
           </CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportToGoogleCalendar}>
+            <Button variant="outline" size="sm" onClick={handleExportToGoogleCalendar}>
               <ExternalLink className="h-4 w-4 mr-2" />
               Google Calendar
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportToOutlook}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Outlook
             </Button>
             <Button variant="outline" size="sm" onClick={exportCalendarData}>
               <Download className="h-4 w-4 mr-2" />
@@ -315,9 +317,13 @@ const LeaveCalendar = () => {
               Sync with Google Calendar, Outlook, and other calendar services for better planning.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={exportToGoogleCalendar}>
+              <Button variant="outline" size="sm" onClick={handleExportToGoogleCalendar}>
                 <ExternalLink className="h-3 w-3 mr-1" />
                 Add to Google Calendar
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportToOutlook}>
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Add to Outlook
               </Button>
               <Button variant="outline" size="sm" onClick={exportCalendarData}>
                 <Download className="h-3 w-3 mr-1" />
