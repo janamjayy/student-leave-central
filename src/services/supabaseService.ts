@@ -45,15 +45,7 @@ export interface Notification {
   created_at: string;
 }
 
-export interface Holiday {
-  id: string;
-  title: string;
-  date: string;
-  description?: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
+// Removed Holiday interface and holiday functions since the table doesn't exist in types yet
 
 export const supabaseService = {
   // Auth functions
@@ -290,64 +282,6 @@ export const supabaseService = {
 
     if (error) {
       console.error("Error updating leave status:", error.message);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, error: null };
-  },
-
-  // Holiday management functions
-  getAllHolidays: async (): Promise<Holiday[]> => {
-    const { data, error } = await supabase
-      .from('holidays')
-      .select('*')
-      .order('date', { ascending: true });
-
-    if (error) {
-      console.error("Error fetching holidays:", error.message);
-      return [];
-    }
-
-    return data as Holiday[];
-  },
-
-  createHoliday: async (holidayData: Omit<Holiday, 'id' | 'created_at' | 'updated_at'>): Promise<{ data: Holiday | null; error: string | null }> => {
-    const { data, error } = await supabase
-      .from('holidays')
-      .insert(holidayData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error creating holiday:", error.message);
-      return { data: null, error: error.message };
-    }
-
-    return { data: data as Holiday, error: null };
-  },
-
-  updateHoliday: async (holidayId: string, updates: Partial<Holiday>): Promise<{ success: boolean; error: string | null }> => {
-    const { error } = await supabase
-      .from('holidays')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', holidayId);
-
-    if (error) {
-      console.error("Error updating holiday:", error.message);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, error: null };
-  },
-
-  deleteHoliday: async (holidayId: string): Promise<{ success: boolean; error: string | null }> => {
-    const { error } = await supabase
-      .from('holidays')
-      .delete()
-      .eq('id', holidayId);
-
-    if (error) {
-      console.error("Error deleting holiday:", error.message);
       return { success: false, error: error.message };
     }
 

@@ -57,7 +57,7 @@ const LeaveCalendar = () => {
   };
 
   const fetchHolidays = async (): Promise<Holiday[]> => {
-    // For now, return mock data - this would be replaced with actual Supabase query
+    // Mock data for now until holidays table is properly set up
     return [
       {
         id: '1',
@@ -90,7 +90,7 @@ const LeaveCalendar = () => {
     }
 
     try {
-      // This would be replaced with actual Supabase insertion
+      // Mock implementation - will be replaced when holidays table is available
       const newHoliday: Holiday = {
         id: Date.now().toString(),
         title: holidayTitle,
