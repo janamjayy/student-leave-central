@@ -26,7 +26,9 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
   const [comments, setComments] = useState(leave.comments || "");
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
-  const { user } = useAuth();
+
+  // FIX: use profile, not user
+  const { user, profile } = useAuth();
   
   const [teacherRemarks, setTeacherRemarks] = useState(leave.teacher_remarks || "");
   const [isReasonInvalid, setIsReasonInvalid] = useState(!!leave.is_reason_invalid);
@@ -44,9 +46,9 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
         setIsRejecting(true);
       }
 
-      // Log NLP check flag & remarks if admin/faculty
+      // FIX: Check role via profile, not user
       let result: any = { success: true };
-      if (roleHelpers.isFaculty(user) || roleHelpers.isAdmin(user)) {
+      if (profile && (roleHelpers.isFaculty(profile) || roleHelpers.isAdmin(profile))) {
         result = await supabaseService.updateRemarksAndReasonFlag(
           leave.id,
           teacherRemarks,
@@ -163,7 +165,7 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
           </div>
         )}
 
-        {(roleHelpers.isFaculty(user) || roleHelpers.isAdmin(user)) && (
+        {profile && (roleHelpers.isFaculty(profile) || roleHelpers.isAdmin(profile)) && (
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">
               Teacher Remarks

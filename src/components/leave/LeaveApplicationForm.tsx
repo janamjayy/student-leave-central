@@ -16,24 +16,36 @@ import { useAuth } from "@/context/AuthContext";
 import { supabaseService } from "@/services/supabaseService";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client"; // FIX: import supabase
 
 const LeaveApplicationForm = () => {
   const { user } = useAuth();
-  const [quota, setQuota] = useState<number>(0);
 
-  // Fetch the user's current quota
+  const [quota, setQuota] = useState<number>(0);
+  const [usedQuota, setUsedQuota] = useState<number>(0); // FIX: track usedQuota
+
+  // Fetch the user's current quota and usedQuota
   useEffect(() => {
-    const fetchQuota = async () => {
+    const fetchQuotaAndUsed = async () => {
       if (user) {
+        // Fetch profile
         const { data: profile } = await supabase
           .from("profiles")
           .select("leave_quota")
           .eq("id", user.id)
           .single();
         setQuota(profile?.leave_quota ?? 10);
+
+        // Fetch used quota (approved leaves)
+        const { count } = await supabase
+          .from('leave_applications')
+          .select('id', { count: "exact", head: true })
+          .eq('student_id', user.id)
+          .eq('status', 'approved');
+        setUsedQuota(count ?? 0);
       }
     };
-    fetchQuota();
+    fetchQuotaAndUsed();
   }, [user]);
 
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -300,7 +312,7 @@ const LeaveApplicationForm = () => {
       <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
         Your remaining quota:{" "}
         <span className="font-semibold">
-          {quota - ((usedQuota ?? 0) || 0)}
+          {quota - usedQuota}
         </span>
       </div>
     </form>
