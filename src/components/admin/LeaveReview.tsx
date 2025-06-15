@@ -1,4 +1,8 @@
 import { useState } from "react";
+import React, { useRef } from "react";
+import LeavePdfTemplate from "./LeavePdfTemplate";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Card,
   CardContent,
@@ -96,7 +100,83 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
     });
   };
   
-  const isPending = leave.status === 'pending';
+  // PDF: ref for the printable template
+  const pdfRef = useRef<HTMLDivElement>(null);
+
+  // Role/Audit: Figure out approver display based on user and leave
+  const getApproverDisplay = () => {
+    if (profile?.role === "student" && leave.status === "approved") {
+      // Approved by faculty
+      // Use reviewed_by and teacher_remarks if possible
+      return {
+        name: leave.teacher_remarks
+          ? (leave.teacher_remarks.split("\n")[0] || "Faculty")
+          : "Faculty",
+        id: leave.reviewed_by ?? "-",
+        role: "Faculty",
+      };
+    } else if (profile?.role === "faculty" && leave.status === "approved") {
+      // Approved by admin
+      return {
+        name: leave.teacher_remarks
+          ? (leave.teacher_remarks.split("\n")[0] || "Admin") // fallback
+          : "Admin",
+        id: leave.reviewed_by ?? "-",
+        role: "Admin",
+      };
+    }
+    return {
+      name: "",
+      id: "",
+      role: "",
+    };
+  };
+
+  // PDF generation logic
+  const handleDownloadPdf = async () => {
+    if (pdfRef.current) {
+      // Use html2canvas snapshot for PDF
+      const canvas = await html2canvas(pdfRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor:
+          document.documentElement.classList.contains("dark") ? "#18181b" : "#fff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgProps = pdf.getImageProperties(imgData);
+
+      // Calculate image size
+      let pdfWidth = pageWidth;
+      let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      if (pdfHeight > pageHeight) {
+        pdfHeight = pageHeight;
+        pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
+      }
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        (pageWidth - pdfWidth) / 2,
+        10,
+        pdfWidth,
+        pdfHeight
+      );
+      pdf.save(
+        `Leave_${leave.student?.student_id ?? leave.student_id}_${
+          leave.id
+        }_${leave.status}.pdf`
+      );
+    }
+  };
+  
+  const isPending = leave.status === "pending";
   const studentName = leave.student ? leave.student.full_name : "Student";
   
   return (
@@ -212,6 +292,30 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
         )}
       </CardContent>
       
+      <div style={{ display: "none" }}>
+        {!isPending && (
+          <div ref={pdfRef}>
+            <LeavePdfTemplate
+              leave={leave}
+              approver={getApproverDisplay()}
+              mode={document.documentElement.classList.contains("dark") ? "dark" : "light"}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* PDF Download Button */}
+      {!isPending && leave.status === "approved" && (
+        <div className="w-full px-6 pb-5 flex justify-end">
+          <Button
+            className="bg-primary text-white shadow-md"
+            onClick={handleDownloadPdf}
+          >
+            Download PDF
+          </Button>
+        </div>
+      )}
+
       {isPending && (
         <CardFooter className="bg-gray-50 border-t">
           <div className="flex gap-3 w-full">
