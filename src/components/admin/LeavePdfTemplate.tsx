@@ -1,6 +1,6 @@
 
 import React from "react";
-import { QRCode } from "qrcode.react";
+import QRCode from "qrcode.react";
 import logo from "/public/favicon.ico"; // Replace with your institution's logo path or use an image component
 
 interface LeavePdfTemplateProps {
