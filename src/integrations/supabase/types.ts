@@ -17,6 +17,7 @@ export type Database = {
           end_date: string
           id: string
           is_emergency: boolean | null
+          is_reason_invalid: boolean | null
           leave_type: string
           reason: string
           reviewed_by: string | null
@@ -24,6 +25,7 @@ export type Database = {
           status: Database["public"]["Enums"]["leave_status"] | null
           student_id: string
           student_name: string
+          teacher_remarks: string | null
           updated_at: string
         }
         Insert: {
@@ -33,6 +35,7 @@ export type Database = {
           end_date: string
           id?: string
           is_emergency?: boolean | null
+          is_reason_invalid?: boolean | null
           leave_type: string
           reason: string
           reviewed_by?: string | null
@@ -40,6 +43,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["leave_status"] | null
           student_id: string
           student_name: string
+          teacher_remarks?: string | null
           updated_at?: string
         }
         Update: {
@@ -49,6 +53,7 @@ export type Database = {
           end_date?: string
           id?: string
           is_emergency?: boolean | null
+          is_reason_invalid?: boolean | null
           leave_type?: string
           reason?: string
           reviewed_by?: string | null
@@ -56,12 +61,48 @@ export type Database = {
           status?: Database["public"]["Enums"]["leave_status"] | null
           student_id?: string
           student_name?: string
+          teacher_remarks?: string | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "leave_applications_reviewed_by_fkey"
             columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_quota_log: {
+        Row: {
+          id: string
+          new_quota: number | null
+          old_quota: number | null
+          student_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          new_quota?: number | null
+          old_quota?: number | null
+          student_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          new_quota?: number | null
+          old_quota?: number | null
+          student_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_quota_log_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -120,6 +161,8 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          leave_quota: number | null
+          otp_secret: string | null
           role: Database["public"]["Enums"]["user_role"]
           student_id: string | null
           updated_at: string
@@ -130,6 +173,8 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          leave_quota?: number | null
+          otp_secret?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           student_id?: string | null
           updated_at?: string
@@ -140,6 +185,8 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          leave_quota?: number | null
+          otp_secret?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           student_id?: string | null
           updated_at?: string

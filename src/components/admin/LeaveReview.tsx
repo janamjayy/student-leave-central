@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Card,
@@ -16,6 +15,7 @@ import { Calendar, Clock, FileText, Download, ThumbsUp, ThumbsDown, AlertTriangl
 import { LeaveApplication, supabaseService } from "@/services/supabaseService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { roleHelpers } from "@/services/supabaseService";
 
 interface LeaveReviewProps {
   leave: LeaveApplication;
@@ -27,6 +27,9 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const { user } = useAuth();
+  
+  const [teacherRemarks, setTeacherRemarks] = useState(leave.teacher_remarks || "");
+  const [isReasonInvalid, setIsReasonInvalid] = useState(!!leave.is_reason_invalid);
   
   const handleStatusUpdate = async (status: 'approved' | 'rejected') => {
     if (!user) {
@@ -40,6 +43,19 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
       } else {
         setIsRejecting(true);
       }
+
+      // Log NLP check flag & remarks if admin/faculty
+      let result: any = { success: true };
+      if (roleHelpers.isFaculty(user) || roleHelpers.isAdmin(user)) {
+        result = await supabaseService.updateRemarksAndReasonFlag(
+          leave.id,
+          teacherRemarks,
+          nlpDetectInvalidReason(leave.reason),
+          user.id
+        );
+      }
+
+      if (!result.success) throw new Error(result.error);
       
       const { success, error } = await supabaseService.updateLeaveStatus(
         leave.id,
@@ -61,6 +77,13 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
       setIsApproving(false);
       setIsRejecting(false);
     }
+  };
+
+  // Add a simple repetitive/invalid reason checker for NLP demo
+  const nlpDetectInvalidReason = (reason: string) => {
+    const lower = (reason || "").toLowerCase();
+    // Very basic: flag if "not feeling well" or "out of station" repeats
+    return ["not feeling well", "out of station"].some(phrase => lower.includes(phrase));
   };
   
   const formatDate = (dateString: string) => {
@@ -137,6 +160,31 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
               <span>View Attachment</span>
               <Download className="h-4 w-4" />
             </a>
+          </div>
+        )}
+
+        {(roleHelpers.isFaculty(user) || roleHelpers.isAdmin(user)) && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">
+              Teacher Remarks
+            </label>
+            <Textarea
+              value={teacherRemarks}
+              onChange={(e) => setTeacherRemarks(e.target.value)}
+              placeholder="Add remarks for the student/leave reason..."
+              className="min-h-[80px]"
+            />
+            <div className="flex items-center mt-2">
+              <input
+                type="checkbox"
+                checked={isReasonInvalid}
+                onChange={() => setIsReasonInvalid(v => !v)}
+                className="mr-2"
+              />
+              <span className="text-xs text-amber-700">
+                Mark reason as repetitive/invalid (NLP Demo)
+              </span>
+            </div>
           </div>
         )}
         

@@ -22,6 +22,8 @@ export interface LeaveApplication {
     student_id: string;
     email: string;
   }
+  teacher_remarks?: string;
+  is_reason_invalid?: boolean;
 }
 
 export interface UserProfile {
@@ -33,6 +35,8 @@ export interface UserProfile {
   department?: string;
   created_at: string;
   updated_at: string;
+  leave_quota?: number;
+  otp_secret?: string;
 }
 
 export interface Notification {
@@ -46,6 +50,13 @@ export interface Notification {
 }
 
 // Removed Holiday interface and holiday functions since the table doesn't exist in types yet
+
+// RBAC helpers for role logic
+export const roleHelpers = {
+  isStudent: (profile: { role: string }) => profile.role === "student",
+  isFaculty: (profile: { role: string }) => profile.role === "faculty",
+  isAdmin: (profile: { role: string }) => profile.role === "admin",
+};
 
 export const supabaseService = {
   // Auth functions
@@ -163,15 +174,17 @@ export const supabaseService = {
   },
 
   // Leave application functions
+  // Leave quota check before submit
   submitLeave: async (leaveData: Omit<LeaveApplication, 'id' | 'applied_on' | 'status' | 'updated_at' | 'student_name'>): Promise<{ data: LeaveApplication | null; error: string | null }> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { data: null, error: "User not authenticated" };
     }
 
+    // Fetch user's profile to check quota
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('full_name, leave_quota')
       .eq('id', user.id)
       .single();
 
@@ -180,9 +193,22 @@ export const supabaseService = {
       return { data: null, error: "Could not fetch user profile" };
     }
 
+    // Count approved leaves
+    const { count: usedQuota } = await supabase
+      .from('leave_applications')
+      .select('id', { count: "exact", head: true })
+      .eq('student_id', user.id)
+      .eq('status', 'approved');
+
+    const leaveQuota = profile.leave_quota ?? 10;
+    if ((usedQuota ?? 0) >= leaveQuota) {
+      return { data: null, error: "You have exceeded your leave quota. Request cannot be submitted." };
+    }
+
     const insertData = {
       ...leaveData,
-      student_name: profile.full_name
+      student_name: profile.full_name,
+      // Optionally, add is_reason_invalid: false by default
     };
 
     const { data, error } = await supabase
@@ -195,6 +221,9 @@ export const supabaseService = {
       console.error("Error submitting leave:", error.message);
       return { data: null, error: error.message };
     }
+
+    // Log quota change (for this request, quota not decremented until approval)
+    // Logging old/new quota can be extended if needed
 
     return { data: data as LeaveApplication, error: null };
   },
@@ -286,6 +315,61 @@ export const supabaseService = {
     }
 
     return { success: true, error: null };
+  },
+
+  // Leave Quota Log
+  addLeaveQuotaLog: async (student_id: string, old_quota: number, new_quota: number, updated_by: string) => {
+    const { error } = await supabase
+      .from('leave_quota_log')
+      .insert({
+        student_id,
+        old_quota,
+        new_quota,
+        updated_by
+      });
+
+    if (error) {
+      console.error("Error logging quota change:", error.message);
+    }
+  },
+
+  // For updating teacher/admin remarks & NLP flag
+  updateRemarksAndReasonFlag: async (leaveId: string, remarks: string, is_reason_invalid: boolean, reviewerId: string) => {
+    const { error } = await supabase
+      .from('leave_applications')
+      .update({
+        teacher_remarks: remarks,
+        is_reason_invalid,
+        reviewed_by: reviewerId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', leaveId);
+
+    if (error) {
+      console.error("Error updating remarks/NLP:", error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true, error: null };
+  },
+
+  // 2FA: Store OTP Secret
+  setOTPSecret: async (userId: string, secret: string) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ otp_secret: secret })
+      .eq('id', userId);
+
+    return { success: !error, error: error?.message ?? null };
+  },
+
+  // 2FA: Get OTP Secret
+  getOTPSecret: async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('otp_secret')
+      .eq('id', userId)
+      .single();
+    return { secret: data?.otp_secret ?? null, error: error?.message ?? null };
   },
 
   // Notifications functions

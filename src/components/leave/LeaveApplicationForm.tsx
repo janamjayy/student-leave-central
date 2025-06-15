@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +18,24 @@ import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const LeaveApplicationForm = () => {
+  const { user } = useAuth();
+  const [quota, setQuota] = useState<number>(0);
+
+  // Fetch the user's current quota
+  useEffect(() => {
+    const fetchQuota = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("leave_quota")
+          .eq("id", user.id)
+          .single();
+        setQuota(profile?.leave_quota ?? 10);
+      }
+    };
+    fetchQuota();
+  }, [user]);
+
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [leaveType, setLeaveType] = useState("");
@@ -28,11 +45,10 @@ const LeaveApplicationForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { user, profile } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
     
     if (!startDate || !endDate || !leaveType || !reason) {
@@ -50,6 +66,18 @@ const LeaveApplicationForm = () => {
       return;
     }
     
+    // Before submitting, check for user's used quota
+    const { count: usedQuota } = await supabase
+      .from('leave_applications')
+      .select('id', { count: "exact", head: true })
+      .eq('student_id', user.id)
+      .eq('status', 'approved');
+
+    if ((usedQuota ?? 0) >= quota) {
+      toast.error("Leave quota exceeded, request cannot be submitted.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       
@@ -108,22 +136,22 @@ const LeaveApplicationForm = () => {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in">
-      <Card className="w-full shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-t-lg">
-          <CardTitle className="text-2xl font-bold text-gray-800">Leave Application</CardTitle>
-          <CardDescription>Fill out the form to apply for a leave</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <form onSubmit={handleSubmit}>
+      <div className="max-w-4xl mx-auto animate-fade-in">
+        <Card className="w-full shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-t-lg">
+            <CardTitle className="text-2xl font-bold text-gray-800">Leave Application</CardTitle>
+            <CardDescription>Fill out the form to apply for a leave</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="start-date" className="text-gray-700">Leave Start Date</Label>
@@ -252,24 +280,30 @@ const LeaveApplicationForm = () => {
                 Accepted file types: PDF, JPG, JPEG, PNG, DOC, DOCX. Maximum file size: 5MB.
               </p>
             </div>
-          </form>
-        </CardContent>
-        <CardFooter className="bg-gray-50 rounded-b-lg">
-          <Button 
-            onClick={handleSubmit} 
-            className="w-full sm:w-auto flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 transition-colors"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
-            <span>Submit Application</span>
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+          </CardContent>
+          <CardFooter className="bg-gray-50 rounded-b-lg">
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full sm:w-auto flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 transition-colors"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              <span>Submit Application</span>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+      <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
+        Your remaining quota:{" "}
+        <span className="font-semibold">
+          {quota - ((usedQuota ?? 0) || 0)}
+        </span>
+      </div>
+    </form>
   );
 };
 
