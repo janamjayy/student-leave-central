@@ -1,6 +1,6 @@
 
 import React from "react";
-import QRCode from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import logo from "/public/favicon.ico"; // Replace with your institution's logo path or use an image component
 
 interface LeavePdfTemplateProps {
@@ -100,7 +100,7 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
         {/* Optional QR and signature */}
         <div className="mt-8 flex items-end justify-between">
           <div>
-            <QRCode
+            <QRCodeCanvas
               value={`Leave#${leave.id ?? ""}|${leave.student?.full_name ?? ""}|${leave.status}`}
               size={60}
               bgColor={mode === "dark" ? "#18181b" : "#fff"}
