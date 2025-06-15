@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { User, LogIn, Key, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { adminService } from "@/services/adminService";
 
 const Login = () => {
   const [tab, setTab] = useState<"student" | "admin">("student");
@@ -41,27 +41,38 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
     setIsLoading(true);
+
     try {
+      if (tab === "admin") {
+        // Admin login via admin_users table
+        const { admin, error: adminError } = await adminService.login(email, password);
+
+        if (adminError) {
+          setError(adminError);
+          setIsLoading(false);
+          return;
+        }
+        if (!admin) {
+          setError("Invalid admin credentials.");
+          setIsLoading(false);
+          return;
+        }
+        // Success: redirect to admin dashboard!
+        setIsLoading(false);
+        navigate("/admin/dashboard");
+        return;
+      }
+
+      // Student flow (default Supabase Auth)
       await login(email, password);
       // Wait until profile loads (this will usually take a moment)
       await waitForProfile();
 
-      // Now verify role if on Admin tab
-      if (tab === "admin") {
-        if (profile?.role !== "admin") {
-          setError("This account does not have admin access. Please login with an admin account.");
-          setIsLoading(false);
-          return;
-        }
-        navigate("/admin/dashboard");
-      } else {
-        // Student tab, allow any role to login as a student (student's section will restrict with RBAC anyway)
-        navigate("/my-leaves");
-      }
+      // Student tab, allow any role to login as a student (student's section will restrict with RBAC anyway)
+      navigate("/my-leaves");
+
     } catch (err: any) {
-      // AuthContext already toasts errors; here, add error feedback for user
       setError(
         err?.message ||
         "Failed to sign in. Please check your credentials or try again."
@@ -237,4 +248,3 @@ const Login = () => {
 };
 
 export default Login;
-
