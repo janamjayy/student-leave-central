@@ -17,6 +17,8 @@ export interface AdminUser {
  */
 export const adminService = {
   login: async (email: string, password: string): Promise<{ admin: AdminUser | null; error: string | null }> => {
+    console.log("[AdminService] Attempting admin login with:", { email, password });
+
     // Query the admin_users table for matching email and password.
     const { data, error } = await supabase
       .from("admin_users")
@@ -26,11 +28,14 @@ export const adminService = {
       .maybeSingle();
 
     if (error) {
+      console.error("[AdminService] Supabase error:", error);
       return { admin: null, error: error.message };
     }
     if (!data) {
+      console.warn("[AdminService] No admin found with provided credentials.");
       return { admin: null, error: "Invalid email or password." };
     }
+    console.log("[AdminService] Login successful:", data);
     return { admin: data as AdminUser, error: null };
   }
 };
