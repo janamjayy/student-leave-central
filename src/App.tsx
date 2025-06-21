@@ -11,6 +11,7 @@ import { ThemeProvider } from "./context/ThemeProvider";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import AdminSignup from "./pages/AdminSignup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ApplyLeave from "./pages/ApplyLeave";
 import MyLeaves from "./pages/MyLeaves";
@@ -72,6 +73,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/admin-signup" element={<AdminSignup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 
                 {/* Protected Student Routes */}
