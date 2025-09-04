@@ -20,6 +20,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLeaves from "./pages/admin/Leaves";
 import AdminUsers from "./pages/admin/Users";
 import NotFound from "./pages/NotFound";
+import AdminRoute from "./components/common/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -43,10 +44,6 @@ const ProtectedRoute = ({
   
   return <>{children}</>;
 };
-
-const AdminRoute = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute allowedRoles={['admin']}>{children}</ProtectedRoute>
-);
 
 const FacultyRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute allowedRoles={['faculty']}>{children}</ProtectedRoute>
