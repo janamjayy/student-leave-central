@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { User, LogIn, Key, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useAdmin } from "@/context/AdminContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { adminService } from "@/services/adminService";
 
@@ -21,6 +22,7 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
 
   const { login, profile, loading } = useAuth();
+  const { setAdmin } = useAdmin();
   const navigate = useNavigate();
 
   // Reset error when switching tabs
@@ -58,6 +60,8 @@ const Login = () => {
           setIsLoading(false);
           return;
         }
+        // Store admin in context and localStorage
+        setAdmin(admin);
         // Success: redirect to admin dashboard!
         setIsLoading(false);
         navigate("/admin/dashboard");

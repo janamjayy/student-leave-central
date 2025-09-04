@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { AdminProvider } from './context/AdminContext'
 
 // Set the HTML class based on the saved theme or system preference
 const getInitialTheme = () => {
@@ -17,4 +18,8 @@ const getInitialTheme = () => {
 
 document.documentElement.classList.add(getInitialTheme())
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <AdminProvider>
+    <App />
+  </AdminProvider>
+);
