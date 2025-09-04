@@ -62,9 +62,11 @@ const Login = () => {
         }
         // Store admin in context and localStorage
         setAdmin(admin);
+        console.log("[Login] Admin set in context, redirecting to dashboard...");
         // Success: redirect to admin dashboard!
         setIsLoading(false);
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
+        console.log("[Login] Navigate called with /admin/dashboard");
         return;
       }
 

@@ -10,7 +10,9 @@ interface AdminRouteProps {
 }
 
 const AdminRoute = ({ children, fallback }: AdminRouteProps) => {
-  const { isAdminAuthenticated } = useAdmin();
+  const { isAdminAuthenticated, admin } = useAdmin();
+  
+  console.log("[AdminRoute] isAdminAuthenticated:", isAdminAuthenticated, "admin:", admin);
 
   if (!isAdminAuthenticated) {
     if (fallback) {
