@@ -97,9 +97,9 @@ const App = () => (
                   </AdminRoute>
                 } />
                 <Route path="/admin/leaves" element={
-                  <StaffRoute>
+                  <AdminRoute>
                     <AdminLeaves />
-                  </StaffRoute>
+                  </AdminRoute>
                 } />
                 <Route path="/admin/users" element={
                   <AdminRoute>
