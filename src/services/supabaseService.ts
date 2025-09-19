@@ -4,6 +4,7 @@ import { User, Session } from "@supabase/supabase-js";
 
 export interface LeaveApplication {
   id: string;
+  user_id?: string;
   student_id: string;
   leave_type: string;
   reason: string;
@@ -49,8 +50,6 @@ export interface Notification {
   created_at: string;
 }
 
-// Removed Holiday interface and holiday functions since the table doesn't exist in types yet
-
 // RBAC helpers for role logic
 export const roleHelpers = {
   isStudent: (profile: { role: string }) => profile.role === "student",
@@ -78,18 +77,23 @@ export const supabaseService = {
   },
 
   getUserProfile: async (userId: string): Promise<UserProfile | null> => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    
-    if (error) {
-      console.error("Error fetching user profile:", error.message);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user profile:", error.message);
+        return null;
+      }
+      
+      return data as UserProfile;
+    } catch (error) {
+      console.error("Error in getUserProfile:", error);
       return null;
     }
-    
-    return data as UserProfile;
   },
 
   login: async (email: string, password: string): Promise<{ user: User | null; error: string | null }> => {
@@ -141,17 +145,22 @@ export const supabaseService = {
 
   // User Management functions
   getAllUsers: async (): Promise<UserProfile[]> => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching users:", error.message);
+      if (error) {
+        console.error("Error fetching users:", error.message);
+        return [];
+      }
+
+      return data as UserProfile[];
+    } catch (error) {
+      console.error("Error in getAllUsers:", error);
       return [];
     }
-
-    return data as UserProfile[];
   },
 
   updateUserRole: async (userId: string, newRole: 'faculty' | 'student'): Promise<{ success: boolean; error: string | null }> => {
@@ -160,21 +169,25 @@ export const supabaseService = {
       return { success: false, error: "Invalid role. Only 'faculty' and 'student' roles can be assigned." };
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole, updated_at: new Date().toISOString() })
-      .eq('id', userId);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq('id', userId);
 
-    if (error) {
-      console.error("Error updating user role:", error.message);
-      return { success: false, error: error.message };
+      if (error) {
+        console.error("Error updating user role:", error.message);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, error: null };
+    } catch (error) {
+      console.error("Error in updateUserRole:", error);
+      return { success: false, error: "An unexpected error occurred" };
     }
-
-    return { success: true, error: null };
   },
 
   // Leave application functions
-  // Leave quota check before submit
   submitLeave: async (leaveData: {
     leave_type: string;
     reason: string;
@@ -183,264 +196,336 @@ export const supabaseService = {
     is_emergency: boolean;
     attachment_url?: string;
   }): Promise<{ data: LeaveApplication | null; error: string | null }> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { data: null, error: "User not authenticated" };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { data: null, error: "User not authenticated" };
+      }
+
+      // Fetch user's profile to check quota
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, leave_quota, student_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error("Error fetching user profile:", profileError?.message);
+        return { data: null, error: "Could not fetch user profile" };
+      }
+
+      // Simple quota check - fetch all approved leaves for this user
+      let usedQuota = 0;
+      try {
+        const response: any = await supabase
+          .from('leave_applications')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'approved');
+
+        usedQuota = response.data?.length || 0;
+      } catch (error) {
+        console.error("Error checking quota:", error);
+        usedQuota = 0;
+      }
+      const leaveQuota = profile.leave_quota ?? 10;
+      
+      if (usedQuota >= leaveQuota) {
+        return { data: null, error: "You have exceeded your leave quota. Request cannot be submitted." };
+      }
+
+      const insertData = {
+        user_id: user.id,
+        student_id: profile.student_id || user.id,
+        leave_type: leaveData.leave_type,
+        reason: leaveData.reason,
+        start_date: leaveData.start_date,
+        end_date: leaveData.end_date,
+        is_emergency: leaveData.is_emergency,
+        attachment_url: leaveData.attachment_url,
+        student_name: profile.full_name,
+        status: 'pending' as const
+      };
+
+      const { data, error } = await supabase
+        .from('leave_applications')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error submitting leave:", error.message);
+        return { data: null, error: error.message };
+      }
+
+      return { data: data as LeaveApplication, error: null };
+    } catch (error) {
+      console.error("Error in submitLeave:", error);
+      return { data: null, error: "An unexpected error occurred" };
     }
-
-    // Fetch user's profile to check quota
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('full_name, leave_quota, student_id')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      console.error("Error fetching user profile:", profileError?.message);
-      return { data: null, error: "Could not fetch user profile" };
-    }
-
-    // Count approved leaves - use user.id directly
-    const { count: usedQuota } = await supabase
-      .from('leave_applications')
-      .select('id', { count: "exact", head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'approved');
-
-    const leaveQuota = profile.leave_quota ?? 10;
-    if ((usedQuota ?? 0) >= leaveQuota) {
-      return { data: null, error: "You have exceeded your leave quota. Request cannot be submitted." };
-    }
-
-    const insertData = {
-      user_id: user.id,
-      student_id: profile.student_id || user.id,
-      leave_type: leaveData.leave_type,
-      reason: leaveData.reason,
-      start_date: leaveData.start_date,
-      end_date: leaveData.end_date,
-      is_emergency: leaveData.is_emergency,
-      attachment_url: leaveData.attachment_url,
-      student_name: profile.full_name,
-      status: 'pending' as const
-    };
-
-    const { data, error } = await supabase
-      .from('leave_applications')
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error submitting leave:", error.message);
-      return { data: null, error: error.message };
-    }
-
-    return { data: data as LeaveApplication, error: null };
   },
 
   uploadAttachment: async (file: File, userId: string): Promise<{ url: string | null; error: string | null }> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-    const { data, error } = await supabase.storage
-      .from('leave_attachments')
-      .upload(fileName, file);
+      const { data, error } = await supabase.storage
+        .from('leave_attachments')
+        .upload(fileName, file);
 
-    if (error) {
-      console.error("Error uploading file:", error.message);
-      return { url: null, error: error.message };
+      if (error) {
+        console.error("Error uploading file:", error.message);
+        return { url: null, error: error.message };
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('leave_attachments')
+        .getPublicUrl(data.path);
+
+      return { url: publicUrl, error: null };
+    } catch (error) {
+      console.error("Error in uploadAttachment:", error);
+      return { url: null, error: "An unexpected error occurred" };
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('leave_attachments')
-      .getPublicUrl(data.path);
-
-    return { url: publicUrl, error: null };
   },
 
   getStudentLeaves: async (studentId: string): Promise<LeaveApplication[]> => {
-    const { data, error } = await supabase
-      .from('leave_applications')
-      .select('*')
-      .eq('user_id', studentId)
-      .order('applied_on', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('leave_applications')
+        .select('*')
+        .eq('user_id', studentId)
+        .order('applied_on', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching leaves:", error.message);
+      if (error) {
+        console.error("Error fetching leaves:", error.message);
+        return [];
+      }
+
+      return (data || []) as LeaveApplication[];
+    } catch (error) {
+      console.error("Error in getStudentLeaves:", error);
       return [];
     }
-
-    return data as LeaveApplication[];
   },
 
   getAllLeaves: async (): Promise<LeaveApplication[]> => {
-    const { data, error } = await supabase
-      .from('leave_applications')
-      .select(`
-        *,
-        student:profiles(full_name, student_id, email)
-      `)
-      .order('applied_on', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('leave_applications')
+        .select(`
+          *,
+          student:profiles(full_name, student_id, email)
+        `)
+        .order('applied_on', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching all leaves:", error.message);
+      if (error) {
+        console.error("Error fetching all leaves:", error.message);
+        return [];
+      }
+
+      return (data || []) as unknown as LeaveApplication[];
+    } catch (error) {
+      console.error("Error in getAllLeaves:", error);
       return [];
     }
-
-    return data as unknown as LeaveApplication[];
   },
 
   getPendingLeaves: async (): Promise<LeaveApplication[]> => {
-    const { data, error } = await supabase
-      .from('leave_applications')
-      .select(`
-        *,
-        student:profiles(full_name, student_id, email)
-      `)
-      .eq('status', 'pending')
-      .order('applied_on', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('leave_applications')
+        .select(`
+          *,
+          student:profiles(full_name, student_id, email)
+        `)
+        .eq('status', 'pending')
+        .order('applied_on', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching pending leaves:", error.message);
+      if (error) {
+        console.error("Error fetching pending leaves:", error.message);
+        return [];
+      }
+
+      return (data || []) as unknown as LeaveApplication[];
+    } catch (error) {
+      console.error("Error in getPendingLeaves:", error);
       return [];
     }
-
-    return data as unknown as LeaveApplication[];
   },
 
   updateLeaveStatus: async (leaveId: string, status: 'approved' | 'rejected', reviewerId: string, comments?: string): Promise<{ success: boolean; error: string | null }> => {
-    const { error } = await supabase
-      .from('leave_applications')
-      .update({ 
-        status, 
-        reviewed_by: reviewerId,
-        comments,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', leaveId);
+    try {
+      const { error } = await supabase
+        .from('leave_applications')
+        .update({ 
+          status, 
+          reviewed_by: reviewerId,
+          comments,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leaveId);
 
-    if (error) {
-      console.error("Error updating leave status:", error.message);
-      return { success: false, error: error.message };
+      if (error) {
+        console.error("Error updating leave status:", error.message);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, error: null };
+    } catch (error) {
+      console.error("Error in updateLeaveStatus:", error);
+      return { success: false, error: "An unexpected error occurred" };
     }
-
-    return { success: true, error: null };
   },
 
   // Leave Quota Log
   addLeaveQuotaLog: async (student_id: string, old_quota: number, new_quota: number, updated_by: string) => {
-    const { error } = await supabase
-      .from('leave_quota_log')
-      .insert({
-        student_id,
-        old_quota,
-        new_quota,
-        updated_by
-      });
+    try {
+      const { error } = await supabase
+        .from('leave_quota_log')
+        .insert({
+          student_id,
+          old_quota,
+          new_quota,
+          updated_by
+        });
 
-    if (error) {
-      console.error("Error logging quota change:", error.message);
+      if (error) {
+        console.error("Error logging quota change:", error.message);
+      }
+    } catch (error) {
+      console.error("Error in addLeaveQuotaLog:", error);
     }
   },
 
   // For updating teacher/admin remarks & NLP flag
   updateRemarksAndReasonFlag: async (leaveId: string, remarks: string, is_reason_invalid: boolean, reviewerId: string) => {
-    const { error } = await supabase
-      .from('leave_applications')
-      .update({
-        teacher_remarks: remarks,
-        is_reason_invalid,
-        reviewed_by: reviewerId,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', leaveId);
+    try {
+      const { error } = await supabase
+        .from('leave_applications')
+        .update({
+          teacher_remarks: remarks,
+          is_reason_invalid,
+          reviewed_by: reviewerId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leaveId);
 
-    if (error) {
-      console.error("Error updating remarks/NLP:", error.message);
-      return { success: false, error: error.message };
+      if (error) {
+        console.error("Error updating remarks/NLP:", error.message);
+        return { success: false, error: error.message };
+      }
+      return { success: true, error: null };
+    } catch (error) {
+      console.error("Error in updateRemarksAndReasonFlag:", error);
+      return { success: false, error: "An unexpected error occurred" };
     }
-    return { success: true, error: null };
   },
 
   // 2FA: Store OTP Secret
   setOTPSecret: async (userId: string, secret: string) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ otp_secret: secret })
-      .eq('id', userId);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ otp_secret: secret })
+        .eq('id', userId);
 
-    return { success: !error, error: error?.message ?? null };
+      return { success: !error, error: error?.message ?? null };
+    } catch (error) {
+      console.error("Error in setOTPSecret:", error);
+      return { success: false, error: "An unexpected error occurred" };
+    }
   },
 
   // 2FA: Get OTP Secret
   getOTPSecret: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('otp_secret')
-      .eq('id', userId)
-      .single();
-    return { secret: data?.otp_secret ?? null, error: error?.message ?? null };
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('otp_secret')
+        .eq('id', userId)
+        .single();
+      return { secret: data?.otp_secret ?? null, error: error?.message ?? null };
+    } catch (error) {
+      console.error("Error in getOTPSecret:", error);
+      return { secret: null, error: "An unexpected error occurred" };
+    }
   },
 
   // Notifications functions
   getNotifications: async (userId: string): Promise<Notification[]> => {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching notifications:", error.message);
+      if (error) {
+        console.error("Error fetching notifications:", error.message);
+        return [];
+      }
+
+      return (data || []) as Notification[];
+    } catch (error) {
+      console.error("Error in getNotifications:", error);
       return [];
     }
-
-    return data as Notification[];
   },
 
   getUnreadNotificationsCount: async (userId: string): Promise<number> => {
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('is_read', false);
+    try {
+      const { data: notifications } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('is_read', false);
 
-    if (error) {
-      console.error("Error fetching unread notifications count:", error.message);
+      return notifications?.length || 0;
+    } catch (error) {
+      console.error("Error in getUnreadNotificationsCount:", error);
       return 0;
     }
-
-    return count || 0;
   },
 
   markNotificationAsRead: async (notificationId: string): Promise<{ success: boolean }> => {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', notificationId);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
 
-    if (error) {
-      console.error("Error marking notification as read:", error.message);
+      if (error) {
+        console.error("Error marking notification as read:", error.message);
+        return { success: false };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error in markNotificationAsRead:", error);
       return { success: false };
     }
-
-    return { success: true };
   },
 
   markAllNotificationsAsRead: async (userId: string): Promise<{ success: boolean }> => {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', userId)
-      .eq('is_read', false);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
 
-    if (error) {
-      console.error("Error marking all notifications as read:", error.message);
+      if (error) {
+        console.error("Error marking all notifications as read:", error.message);
+        return { success: false };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error in markAllNotificationsAsRead:", error);
       return { success: false };
     }
-
-    return { success: true };
   },
 
   subscribeToNotifications: (userId: string, callback: (notification: Notification) => void) => {
