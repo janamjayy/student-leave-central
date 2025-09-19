@@ -40,7 +40,7 @@ const LeaveApplicationForm = () => {
         const { count } = await supabase
           .from('leave_applications')
           .select('id', { count: "exact", head: true })
-          .eq('student_id', user.id)
+          .eq('user_id', user.id)
           .eq('status', 'approved');
         setUsedQuota(count ?? 0);
       }
@@ -82,7 +82,7 @@ const LeaveApplicationForm = () => {
     const { count: usedQuota } = await supabase
       .from('leave_applications')
       .select('id', { count: "exact", head: true })
-      .eq('student_id', user.id)
+      .eq('user_id', user.id)
       .eq('status', 'approved');
 
     if ((usedQuota ?? 0) >= quota) {
@@ -103,7 +103,6 @@ const LeaveApplicationForm = () => {
       }
       
       const { data, error } = await supabaseService.submitLeave({
-        student_id: user.id,
         leave_type: leaveType,
         reason,
         start_date: startDate.toISOString(),

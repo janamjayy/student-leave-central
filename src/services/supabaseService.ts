@@ -175,7 +175,14 @@ export const supabaseService = {
 
   // Leave application functions
   // Leave quota check before submit
-  submitLeave: async (leaveData: Omit<LeaveApplication, 'id' | 'applied_on' | 'status' | 'updated_at' | 'student_name'>): Promise<{ data: LeaveApplication | null; error: string | null }> => {
+  submitLeave: async (leaveData: {
+    leave_type: string;
+    reason: string;
+    start_date: string;
+    end_date: string;
+    is_emergency: boolean;
+    attachment_url?: string;
+  }): Promise<{ data: LeaveApplication | null; error: string | null }> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { data: null, error: "User not authenticated" };
@@ -184,7 +191,7 @@ export const supabaseService = {
     // Fetch user's profile to check quota
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('full_name, leave_quota')
+      .select('full_name, leave_quota, student_id')
       .eq('id', user.id)
       .single();
 
@@ -193,11 +200,11 @@ export const supabaseService = {
       return { data: null, error: "Could not fetch user profile" };
     }
 
-    // Count approved leaves
+    // Count approved leaves - use user.id directly
     const { count: usedQuota } = await supabase
       .from('leave_applications')
       .select('id', { count: "exact", head: true })
-      .eq('student_id', user.id)
+      .eq('user_id', user.id)
       .eq('status', 'approved');
 
     const leaveQuota = profile.leave_quota ?? 10;
@@ -206,9 +213,16 @@ export const supabaseService = {
     }
 
     const insertData = {
-      ...leaveData,
+      user_id: user.id,
+      student_id: profile.student_id || user.id,
+      leave_type: leaveData.leave_type,
+      reason: leaveData.reason,
+      start_date: leaveData.start_date,
+      end_date: leaveData.end_date,
+      is_emergency: leaveData.is_emergency,
+      attachment_url: leaveData.attachment_url,
       student_name: profile.full_name,
-      // Optionally, add is_reason_invalid: false by default
+      status: 'pending' as const
     };
 
     const { data, error } = await supabase
@@ -221,9 +235,6 @@ export const supabaseService = {
       console.error("Error submitting leave:", error.message);
       return { data: null, error: error.message };
     }
-
-    // Log quota change (for this request, quota not decremented until approval)
-    // Logging old/new quota can be extended if needed
 
     return { data: data as LeaveApplication, error: null };
   },
@@ -252,7 +263,7 @@ export const supabaseService = {
     const { data, error } = await supabase
       .from('leave_applications')
       .select('*')
-      .eq('student_id', studentId)
+      .eq('user_id', studentId)
       .order('applied_on', { ascending: false });
 
     if (error) {
@@ -389,15 +400,18 @@ export const supabaseService = {
   },
 
   getUnreadNotificationsCount: async (userId: string): Promise<number> => {
-    const { data, error } = await supabase
-      .rpc('get_unread_notification_count', { user_id: userId });
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
 
     if (error) {
       console.error("Error fetching unread notifications count:", error.message);
       return 0;
     }
 
-    return data || 0;
+    return count || 0;
   },
 
   markNotificationAsRead: async (notificationId: string): Promise<{ success: boolean }> => {
