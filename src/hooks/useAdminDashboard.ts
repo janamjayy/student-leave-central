@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabaseService, LeaveApplication } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export interface DashboardStats {
@@ -121,6 +122,27 @@ export const useAdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Subscribe to real-time updates for leave applications
+    const channel = supabase
+      .channel('admin-dashboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leave_applications'
+        },
+        () => {
+          console.log('Leave application changed, refreshing dashboard...');
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const refreshData = () => {

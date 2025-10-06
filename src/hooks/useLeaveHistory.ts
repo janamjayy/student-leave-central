@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { LeaveApplication, supabaseService } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const useLeaveHistory = () => {
@@ -42,6 +43,27 @@ export const useLeaveHistory = () => {
   useEffect(() => {
     if (user) {
       fetchLeaves();
+
+      // Subscribe to real-time updates for leave applications
+      const channel = supabase
+        .channel('leave-history-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'leave_applications'
+          },
+          (payload) => {
+            console.log('Leave application changed:', payload);
+            fetchLeaves();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
