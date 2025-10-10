@@ -19,6 +19,8 @@ import Calendar from "./pages/Calendar";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLeaves from "./pages/admin/Leaves";
 import AdminUsers from "./pages/admin/Users";
+import AdminReports from "./pages/admin/Reports";
+import AdminPolicies from "./pages/admin/Policies";
 import NotFound from "./pages/NotFound";
 import AdminRoute from "./components/common/AdminRoute";
 
@@ -104,6 +106,16 @@ const App = () => (
                 <Route path="/admin/users" element={
                   <AdminRoute>
                     <AdminUsers />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/reports" element={
+                  <StaffRoute>
+                    <AdminReports />
+                  </StaffRoute>
+                } />
+                <Route path="/admin/policies" element={
+                  <AdminRoute>
+                    <AdminPolicies />
                   </AdminRoute>
                 } />
                 

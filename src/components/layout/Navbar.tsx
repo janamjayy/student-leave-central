@@ -56,14 +56,22 @@ const Navbar = () => {
                     Dashboard
                   </Link>
                   <Link to="/admin/leaves" className="text-sm font-medium transition-colors hover:text-foreground/80">
-                    Manage Leaves
+                    Leaves
+                  </Link>
+                  <Link to="/admin/reports" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                    Reports
                   </Link>
                 </>
               )}
               {isAdmin() && (
-                <Link to="/admin/users" className="text-sm font-medium transition-colors hover:text-foreground/80">
-                  User Management
-                </Link>
+                <>
+                  <Link to="/admin/users" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                    Users
+                  </Link>
+                  <Link to="/admin/policies" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                    Policies
+                  </Link>
+                </>
               )}
               <NotificationCenter />
               <ThemeToggle />
