@@ -12,7 +12,7 @@ export const useLeaveHistory = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   
-  const { user, isAdmin, isFaculty } = useAuth();
+  const { user, isSuperAdmin, isFaculty } = useAuth();
 
   const fetchLeaves = async () => {
     try {
@@ -22,8 +22,8 @@ export const useLeaveHistory = () => {
       let fetchedLeaves: LeaveApplication[] = [];
       
       // Fetch leaves based on user role
-      if (isAdmin() || isFaculty()) {
-        // For admin or faculty, fetch all leaves
+      if (isSuperAdmin() || isFaculty()) {
+        // For superadmin or faculty, fetch all leaves
         fetchedLeaves = await supabaseService.getAllLeaves();
       } else {
         // For students, fetch only their leaves

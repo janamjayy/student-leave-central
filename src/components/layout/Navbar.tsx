@@ -18,7 +18,7 @@ import NotificationCenter from "@/components/notifications/NotificationCenter";
 const Navbar = () => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, profile, logout, isAdmin, isFaculty, isStudent } = useAuth();
+  const { user, profile, logout, isSuperAdmin, isFaculty, isStudent } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -50,7 +50,7 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
-              {(isAdmin() || isFaculty()) && (
+              {(isSuperAdmin() || isFaculty()) && (
                 <>
                   <Link to="/admin/dashboard" className="text-sm font-medium transition-colors hover:text-foreground/80">
                     Dashboard
@@ -63,7 +63,7 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
-              {isAdmin() && (
+              {isSuperAdmin() && (
                 <>
                   <Link to="/admin/users" className="text-sm font-medium transition-colors hover:text-foreground/80">
                     Users
@@ -150,7 +150,7 @@ const Navbar = () => {
                           </SheetClose>
                         </>
                       )}
-                      {(isAdmin() || isFaculty()) && (
+                      {(isSuperAdmin() || isFaculty()) && (
                         <>
                           <SheetClose asChild>
                             <Link 
@@ -174,7 +174,7 @@ const Navbar = () => {
                           </SheetClose>
                         </>
                       )}
-                      {isAdmin() && (
+                      {isSuperAdmin() && (
                         <SheetClose asChild>
                           <Link 
                             to="/admin/users" 

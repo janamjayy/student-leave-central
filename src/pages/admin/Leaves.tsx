@@ -10,7 +10,7 @@ const AdminLeavesPage = () => {
   
   return (
     <Layout>
-      <RoleBasedRoute allowedRoles={['admin', 'faculty']}>
+      <RoleBasedRoute allowedRoles={['superadmin', 'faculty']}>
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold">Leave Management</h1>

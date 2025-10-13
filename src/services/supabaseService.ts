@@ -54,7 +54,8 @@ export interface Notification {
 export const roleHelpers = {
   isStudent: (profile: { role: string }) => profile.role === "student",
   isFaculty: (profile: { role: string }) => profile.role === "faculty",
-  isAdmin: (profile: { role: string }) => profile.role === "admin",
+  isAdmin: (profile: { role: string }) => profile.role === "admin" || profile.role === "superadmin",
+  isSuperAdmin: (profile: { role: string }) => profile.role === "admin" || profile.role === "superadmin",
 };
 
 export const supabaseService = {

@@ -1,19 +1,28 @@
 
 import { ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { AppRole } from "@/services/roleService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldX } from "lucide-react";
 
 interface RoleBasedRouteProps {
   children: ReactNode;
-  allowedRoles: ('student' | 'admin' | 'faculty')[];
+  allowedRoles: AppRole[];
   fallback?: ReactNode;
 }
 
+/**
+ * SECURE Role-Based Route
+ * Uses server-side role validation, NOT client-side storage
+ */
 const RoleBasedRoute = ({ children, allowedRoles, fallback }: RoleBasedRouteProps) => {
-  const { profile } = useAuth();
+  const { user, userRole, loading } = useAuth();
 
-  if (!profile || !allowedRoles.includes(profile.role)) {
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (!user || !userRole || !allowedRoles.includes(userRole)) {
     if (fallback) {
       return <>{fallback}</>;
     }

@@ -5,7 +5,7 @@ import PolicyManagement from "@/components/admin/PolicyManagement";
 const AdminPoliciesPage = () => {
   return (
     <Layout>
-      <RoleBasedRoute allowedRoles={['admin']}>
+      <RoleBasedRoute allowedRoles={['superadmin']}>
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold">Leave Policies</h1>

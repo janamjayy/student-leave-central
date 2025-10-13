@@ -7,7 +7,7 @@ import TrendAnalysis from "@/components/admin/TrendAnalysis";
 const AdminReportsPage = () => {
   return (
     <Layout>
-      <RoleBasedRoute allowedRoles={['admin', 'faculty']}>
+      <RoleBasedRoute allowedRoles={['superadmin', 'faculty']}>
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold">Reports & Analytics</h1>

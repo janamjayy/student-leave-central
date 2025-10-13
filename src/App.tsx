@@ -29,18 +29,18 @@ const queryClient = new QueryClient();
 // Protected route component
 const ProtectedRoute = ({ 
   children, 
-  allowedRoles = ['student', 'admin', 'faculty'], 
+  allowedRoles = ['student', 'faculty', 'superadmin'], 
   redirectPath = '/login' 
 }: { 
   children: React.ReactNode, 
-  allowedRoles?: ('student' | 'admin' | 'faculty')[], 
+  allowedRoles?: ('student' | 'faculty' | 'superadmin')[], 
   redirectPath?: string 
 }) => {
-  const { user, profile, loading } = useAuth();
+  const { user, userRole, loading } = useAuth();
   
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   
-  if (!user || !profile || !allowedRoles.includes(profile.role)) {
+  if (!user || !userRole || !allowedRoles.includes(userRole)) {
     return <Navigate to={redirectPath} replace />;
   }
   
@@ -48,11 +48,7 @@ const ProtectedRoute = ({
 };
 
 const FacultyRoute = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute allowedRoles={['faculty']}>{children}</ProtectedRoute>
-);
-
-const StaffRoute = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute allowedRoles={['admin', 'faculty']}>{children}</ProtectedRoute>
+  <ProtectedRoute allowedRoles={['faculty', 'superadmin']}>{children}</ProtectedRoute>
 );
 
 const StudentRoute = ({ children }: { children: React.ReactNode }) => (
@@ -109,9 +105,9 @@ const App = () => (
                   </AdminRoute>
                 } />
                 <Route path="/admin/reports" element={
-                  <StaffRoute>
+                  <FacultyRoute>
                     <AdminReports />
-                  </StaffRoute>
+                  </FacultyRoute>
                 } />
                 <Route path="/admin/policies" element={
                   <AdminRoute>
