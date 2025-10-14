@@ -27,6 +27,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const setAdmin = (adminUser: AdminUser | null) => {
+    console.log("[AdminContext] Setting admin:", adminUser);
     setAdminState(adminUser);
     if (adminUser) {
       localStorage.setItem('admin_user', JSON.stringify(adminUser));
@@ -45,6 +46,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAdmin,
     logout
   };
+
+  console.log("[AdminContext] Current state:", { admin, isAdminAuthenticated: !!admin });
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 };

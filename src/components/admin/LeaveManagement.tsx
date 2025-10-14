@@ -146,7 +146,7 @@ const LeaveManagement = () => {
     }
 
     if (viewMode === 'table') {
-      return <LeavesTable leaves={leaves} formatDate={formatDate} />;
+  return <LeavesTable leaves={leaves} formatDate={formatDate} onUpdated={handleLeaveUpdated} />;
     } else {
       return (
         <div className="space-y-6">

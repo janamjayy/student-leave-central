@@ -9,10 +9,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/context/AuthContext";
 import { GraduationCap, Users, Shield } from "lucide-react";
 import { AppRole } from "@/services/roleService";
+import { useAdmin } from "@/context/AdminContext";
+import { adminService } from "@/services/adminService";
 
 export const RoleBasedLogin = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { setAdmin } = useAdmin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,13 +28,30 @@ export const RoleBasedLogin = () => {
     setLoading(true);
 
     try {
+      if (roleType === "admin") {
+        // Use adminService for admin login
+        console.log("[RoleBasedLogin] Starting admin login");
+        const { admin, error: adminError } = await adminService.login(email, password);
+        if (adminError) {
+          setError(adminError);
+          setLoading(false);
+          return;
+        }
+        if (!admin) {
+          setError("Invalid admin credentials.");
+          setLoading(false);
+          return;
+        }
+        // Store admin in context
+        console.log("[RoleBasedLogin] Setting admin in context:", admin);
+        setAdmin(admin);
+        console.log("[RoleBasedLogin] Navigating to /admin/dashboard");
+        navigate("/admin/dashboard");
+        setLoading(false);
+        return;
+      }
       await login(email, password, roleType);
-      
-      // Navigate based on role
       switch (roleType) {
-        case 'admin':
-          navigate('/admin/dashboard');
-          break;
         case 'faculty':
           navigate('/faculty/dashboard');
           break;

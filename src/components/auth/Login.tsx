@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, LogIn, Key, Loader2, AlertTriangle } from "lucide-react";
+import { User, LogIn, Key, Loader2, AlertTriangle, BookOpen } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAdmin } from "@/context/AdminContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { adminService } from "@/services/adminService";
 
 const Login = () => {
-  const [tab, setTab] = useState<"student" | "admin">("student");
+  const [tab, setTab] = useState<"student" | "faculty" | "admin">("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -27,7 +27,7 @@ const Login = () => {
 
   // Reset error when switching tabs
   const handleTabChange = (newTab: string) => {
-    setTab(newTab as "student" | "admin");
+    setTab(newTab as "student" | "faculty" | "admin");
     setError(null);
   };
 
@@ -70,13 +70,36 @@ const Login = () => {
         return;
       }
 
+      if (tab === "faculty") {
+        // Faculty login via Supabase Auth with role validation
+        await login(email, password, 'faculty');
+        const profileLoaded = await waitForProfile();
+        
+        if (!profileLoaded) {
+          setError("Profile could not be loaded. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("[Login] Faculty login successful, redirecting to dashboard...");
+        navigate("/faculty/dashboard", { replace: true });
+        return;
+      }
+
       // Student flow (default Supabase Auth)
       await login(email, password);
       // Wait until profile loads (this will usually take a moment)
-      await waitForProfile();
+      const profileLoaded = await waitForProfile();
+      
+      if (!profileLoaded) {
+        setError("Profile could not be loaded. Please try again.");
+        setIsLoading(false);
+        return;
+      }
 
-      // Student tab, allow any role to login as a student (student's section will restrict with RBAC anyway)
-      navigate("/my-leaves");
+      // Student tab - redirect to student dashboard
+      console.log("[Login] Student login successful, redirecting to dashboard...");
+      navigate("/my-leaves", { replace: true });
 
     } catch (err: any) {
       setError(
@@ -99,10 +122,14 @@ const Login = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="student" value={tab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="student" className="flex items-center gap-1.5">
                 <User className="h-4 w-4" />
                 <span>Student</span>
+              </TabsTrigger>
+              <TabsTrigger value="faculty" className="flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4" />
+                <span>Faculty</span>
               </TabsTrigger>
               <TabsTrigger value="admin" className="flex items-center gap-1.5">
                 <Key className="h-4 w-4" />
@@ -174,6 +201,67 @@ const Login = () => {
                     <LogIn className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   )}
                   <span>Login as Student</span>
+                </Button>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="faculty">
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="faculty-email">Email</Label>
+                  <Input
+                    id="faculty-email"
+                    placeholder="faculty@paruluniversity.ac.in"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="transition-all duration-200 focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="faculty-password">Password</Label>
+                    <Link to="/forgot-password" className="text-sm text-primary hover:underline font-medium">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <Input
+                    id="faculty-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="transition-all duration-200 focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="flex items-center space-x-2 my-4">
+                  <Checkbox 
+                    id="faculty-remember-me" 
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    disabled={isLoading}
+                  />
+                  <label
+                    htmlFor="faculty-remember-me"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Remember me
+                  </label>
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full flex items-center gap-1.5 group"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogIn className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  )}
+                  <span>Login as Faculty</span>
                 </Button>
               </form>
             </TabsContent>

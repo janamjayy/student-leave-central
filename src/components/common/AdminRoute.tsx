@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAdmin } from "@/context/AdminContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldX } from "lucide-react";
 
@@ -10,20 +10,39 @@ interface AdminRouteProps {
 }
 
 const AdminRoute = ({ children, fallback }: AdminRouteProps) => {
-  const { user, userRole, loading } = useAuth();
+  const { admin, isAdminAuthenticated } = useAdmin();
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
+  // Debug logging
+  console.log("[AdminRoute] Admin state:", { admin, isAdminAuthenticated });
 
-  if (!user || userRole !== 'admin') {
+  // Check if admin is authenticated - simplified check
+  if (!isAdminAuthenticated) {
+    console.log("[AdminRoute] Access denied - not authenticated");
+    
     if (fallback) {
       return <>{fallback}</>;
     }
     
-    return <Navigate to="/login" replace />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <ShieldX className="w-6 h-6 text-red-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground mb-4">
+              You don't have permission to access this page. This area is restricted to admin users only.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
+  console.log("[AdminRoute] Access granted");
   return <>{children}</>;
 };
 

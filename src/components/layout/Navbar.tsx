@@ -9,22 +9,32 @@ import {
   SheetClose 
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, BookOpen, CalendarCheck, Users } from "lucide-react";
+import { Menu, LogOut, User, BookOpen, CalendarCheck, Users, Shield, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
+import { useAdmin } from "@/context/AdminContext";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 const Navbar = () => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const { user, profile, logout, isAdmin, isFaculty, isStudent } = useAuth();
+  const { admin, isAdminAuthenticated, logout: adminLogout } = useAdmin();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await logout();
+    if (isAdminAuthenticated) {
+      adminLogout();
+    } else {
+      await logout();
+    }
     navigate("/login");
   };
+
+  // Check if any user is authenticated (regular user or admin)
+  const isAuthenticated = user || isAdminAuthenticated;
+  const currentUser = admin || profile;
 
   return (
     <header className="bg-card border-b sticky top-0 z-40">
@@ -38,7 +48,7 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          {user ? (
+          {isAuthenticated ? (
             <>
               {isStudent() && (
                 <>
@@ -50,25 +60,41 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
-              {(isAdmin() || isFaculty()) && (
+              {(isAdmin() || isAdminAuthenticated) && (
                 <>
                   <Link to="/admin/dashboard" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                    <Shield className="inline h-4 w-4 mr-1" />
                     Dashboard
                   </Link>
                   <Link to="/admin/leaves" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                    <CalendarCheck className="inline h-4 w-4 mr-1" />
+                    Manage Leaves
+                  </Link>
+                  <Link to="/admin/users" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                    <Users className="inline h-4 w-4 mr-1" />
+                    User Management
+                  </Link>
+                </>
+              )}
+              {isFaculty() && (
+                <>
+                  <Link to="/faculty/dashboard" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                    Dashboard
+                  </Link>
+                  <Link to="/faculty/leaves" className="text-sm font-medium transition-colors hover:text-foreground/80">
                     Manage Leaves
                   </Link>
                 </>
               )}
-              {isAdmin() && (
-                <Link to="/admin/users" className="text-sm font-medium transition-colors hover:text-foreground/80">
-                  User Management
-                </Link>
-              )}
               <NotificationCenter />
               <ThemeToggle />
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{profile?.full_name}</span>
+                <div className="flex items-center gap-2">
+                  {isAdminAuthenticated && <Shield className="h-4 w-4 text-blue-600" />}
+                  <span className="text-sm font-medium">
+                    {isAdminAuthenticated ? admin?.full_name : profile?.full_name}
+                  </span>
+                </div>
                 <Button 
                   variant="outline" 
                   size="icon" 
@@ -96,7 +122,7 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {isMobile && (
           <div className="flex items-center gap-2 md:hidden">
-            {user && <NotificationCenter />}
+            {isAuthenticated && <NotificationCenter />}
             <ThemeToggle />
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
@@ -109,13 +135,23 @@ const Navbar = () => {
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col space-y-4">
-                  {user ? (
+                  {isAuthenticated ? (
                     <>
                       <div className="flex items-center space-x-2 mb-4 pb-4 border-b">
-                        <User className="h-5 w-5" />
+                        <div className="flex items-center gap-2">
+                          {isAdminAuthenticated && <Shield className="h-5 w-5 text-blue-600" />}
+                          <User className="h-5 w-5" />
+                        </div>
                         <div>
-                          <p className="text-sm font-medium">{profile?.full_name}</p>
-                          <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                          <p className="text-sm font-medium">
+                            {isAdminAuthenticated ? admin?.full_name : profile?.full_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isAdminAuthenticated ? admin?.email : profile?.email}
+                          </p>
+                          {isAdminAuthenticated && (
+                            <p className="text-xs text-blue-600 font-medium">Administrator</p>
+                          )}
                         </div>
                       </div>
                       {isStudent() && (
@@ -142,7 +178,7 @@ const Navbar = () => {
                           </SheetClose>
                         </>
                       )}
-                      {(isAdmin() || isFaculty()) && (
+                      {(isAdmin() || isAdminAuthenticated) && (
                         <>
                           <SheetClose asChild>
                             <Link 
@@ -150,8 +186,8 @@ const Navbar = () => {
                               className="flex items-center py-2 font-medium transition-colors hover:text-foreground/80"
                               onClick={() => setIsOpen(false)}
                             >
-                              <BookOpen className="mr-2 h-5 w-5" />
-                              Dashboard
+                              <Shield className="mr-2 h-5 w-5 text-blue-600" />
+                              Admin Dashboard
                             </Link>
                           </SheetClose>
                           <SheetClose asChild>
@@ -164,19 +200,41 @@ const Navbar = () => {
                               Manage Leaves
                             </Link>
                           </SheetClose>
+                          <SheetClose asChild>
+                            <Link 
+                              to="/admin/users" 
+                              className="flex items-center py-2 font-medium transition-colors hover:text-foreground/80"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <Users className="mr-2 h-5 w-5" />
+                              User Management
+                            </Link>
+                          </SheetClose>
                         </>
                       )}
-                      {isAdmin() && (
-                        <SheetClose asChild>
-                          <Link 
-                            to="/admin/users" 
-                            className="flex items-center py-2 font-medium transition-colors hover:text-foreground/80"
-                            onClick={() => setIsOpen(false)}
-                          >
-                            <Users className="mr-2 h-5 w-5" />
-                            User Management
-                          </Link>
-                        </SheetClose>
+                      {isFaculty() && (
+                        <>
+                          <SheetClose asChild>
+                            <Link 
+                              to="/faculty/dashboard" 
+                              className="flex items-center py-2 font-medium transition-colors hover:text-foreground/80"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <BookOpen className="mr-2 h-5 w-5" />
+                              Dashboard
+                            </Link>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Link 
+                              to="/faculty/leaves" 
+                              className="flex items-center py-2 font-medium transition-colors hover:text-foreground/80"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <CalendarCheck className="mr-2 h-5 w-5" />
+                              Manage Leaves
+                            </Link>
+                          </SheetClose>
+                        </>
                       )}
                       <Button 
                         variant="destructive" 

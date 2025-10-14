@@ -1,6 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { User, Session } from "@supabase/supabase-js";
+import { mockAuthService } from "./mockAuthService";
+
+// Check if mock mode is enabled
+const isMockMode = () => {
+  return process.env.NODE_ENV === 'development' && 
+    localStorage.getItem('use_mock_auth') === 'true';
+};
 
 export interface LeaveApplication {
   id: string;
@@ -72,11 +79,21 @@ export const supabaseService = {
   },
 
   getCurrentUser: async (): Promise<User | null> => {
+    // Use mock auth if enabled
+    if (isMockMode()) {
+      return mockAuthService.getCurrentUser();
+    }
+    
     const { data: { user } } = await supabase.auth.getUser();
     return user;
   },
 
   getUserProfile: async (userId: string): Promise<UserProfile | null> => {
+    // Use mock auth if enabled
+    if (isMockMode()) {
+      return await mockAuthService.getUserProfile(userId);
+    }
+    
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -97,6 +114,11 @@ export const supabaseService = {
   },
 
   login: async (email: string, password: string): Promise<{ user: User | null; error: string | null }> => {
+    // Use mock auth if enabled
+    if (isMockMode()) {
+      return await mockAuthService.login(email, password);
+    }
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -135,6 +157,11 @@ export const supabaseService = {
   },
 
   logout: async (): Promise<void> => {
+    // Use mock auth if enabled
+    if (isMockMode()) {
+      return await mockAuthService.logout();
+    }
+    
     await supabase.auth.signOut();
   },
 
