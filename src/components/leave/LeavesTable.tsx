@@ -19,8 +19,8 @@ interface LeavesTableProps {
 }
 
 const LeavesTable = ({ leaves, formatDate }: LeavesTableProps) => {
-  const { isSuperAdmin, isFaculty } = useAuth();
-  const showStudentInfo = isSuperAdmin() || isFaculty();
+  const { isAdmin, isFaculty } = useAuth();
+  const showStudentInfo = isAdmin() || isFaculty();
 
   return (
     <div className="border rounded-md overflow-hidden">

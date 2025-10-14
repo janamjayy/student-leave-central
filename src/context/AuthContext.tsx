@@ -3,7 +3,6 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseService, UserProfile } from '@/services/supabaseService';
-import { roleService, AppRole } from '@/services/roleService';
 import { toast } from 'sonner';
 
 // Define context type
@@ -11,16 +10,14 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: UserProfile | null;
-  userRole: AppRole | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string, studentId: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  isSuperAdmin: () => boolean;
+  isAdmin: () => boolean;
   isFaculty: () => boolean;
   isStudent: () => boolean;
-  refreshRole: () => Promise<void>;
 }
 
 // Create context with default values
@@ -28,16 +25,14 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   profile: null,
-  userRole: null,
   loading: true,
   login: async () => {},
   signup: async () => {},
   logout: async () => {},
   resetPassword: async () => {},
-  isSuperAdmin: () => false,
+  isAdmin: () => false,
   isFaculty: () => false,
   isStudent: () => false,
-  refreshRole: async () => {},
 });
 
 // Create hook for easy context use
@@ -48,33 +43,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user profile and role
+  // Fetch user profile
   const fetchUserProfile = async (userId: string) => {
     try {
       const userProfile = await supabaseService.getUserProfile(userId);
       setProfile(userProfile);
     } catch (error) {
       console.error('Error fetching user profile:', error);
-    }
-  };
-
-  // Fetch user role from database (server-side check)
-  const fetchUserRole = async (userId: string) => {
-    try {
-      const role = await roleService.getUserRole(userId);
-      setUserRole(role);
-    } catch (error) {
-      console.error('Error fetching user role:', error);
-      setUserRole(null);
-    }
-  };
-
-  const refreshRole = async () => {
-    if (user) {
-      await fetchUserRole(user.id);
     }
   };
 
@@ -86,22 +63,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(currentSession);
         setUser(currentSession?.user || null);
 
-        // If we have a user, fetch their profile and role
+        // If we have a user, fetch their profile
         if (currentSession?.user) {
           // Use setTimeout to avoid potential deadlocks
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
-            fetchUserRole(currentSession.user.id);
           }, 0);
         } else {
           setProfile(null);
-          setUserRole(null);
         }
 
         // Handle specific auth events
         if (event === 'SIGNED_OUT') {
           setProfile(null);
-          setUserRole(null);
         }
       }
     );
@@ -117,7 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (initialUser) {
           await fetchUserProfile(initialUser.id);
-          await fetchUserRole(initialUser.id);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -202,25 +175,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Role check functions - using server-validated role
-  const isSuperAdmin = () => userRole === 'superadmin';
-  const isFaculty = () => userRole === 'faculty';
-  const isStudent = () => userRole === 'student';
+  // Role check functions
+  const isAdmin = () => profile?.role === 'admin';
+  const isFaculty = () => profile?.role === 'faculty';
+  const isStudent = () => profile?.role === 'student';
 
   const value = {
     user,
     session,
     profile,
-    userRole,
     loading,
     login,
     signup,
     logout,
     resetPassword,
-    isSuperAdmin,
+    isAdmin,
     isFaculty,
     isStudent,
-    refreshRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

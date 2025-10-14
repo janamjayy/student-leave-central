@@ -47,8 +47,8 @@ const LeaveCalendar = () => {
   const [holidayDescription, setHolidayDescription] = useState('');
   const [loading, setLoading] = useState(true);
   
-  const { isSuperAdmin, isFaculty } = useAuth();
-  const canManageHolidays = isSuperAdmin() || isFaculty();
+  const { isAdmin, isFaculty } = useAuth();
+  const canManageHolidays = isAdmin() || isFaculty();
 
   useEffect(() => {
     fetchCalendarData();

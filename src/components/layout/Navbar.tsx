@@ -18,7 +18,7 @@ import NotificationCenter from "@/components/notifications/NotificationCenter";
 const Navbar = () => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, profile, logout, isSuperAdmin, isFaculty, isStudent } = useAuth();
+  const { user, profile, logout, isAdmin, isFaculty, isStudent } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -50,28 +50,20 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
-              {(isSuperAdmin() || isFaculty()) && (
+              {(isAdmin() || isFaculty()) && (
                 <>
                   <Link to="/admin/dashboard" className="text-sm font-medium transition-colors hover:text-foreground/80">
                     Dashboard
                   </Link>
                   <Link to="/admin/leaves" className="text-sm font-medium transition-colors hover:text-foreground/80">
-                    Leaves
-                  </Link>
-                  <Link to="/admin/reports" className="text-sm font-medium transition-colors hover:text-foreground/80">
-                    Reports
+                    Manage Leaves
                   </Link>
                 </>
               )}
-              {isSuperAdmin() && (
-                <>
-                  <Link to="/admin/users" className="text-sm font-medium transition-colors hover:text-foreground/80">
-                    Users
-                  </Link>
-                  <Link to="/admin/policies" className="text-sm font-medium transition-colors hover:text-foreground/80">
-                    Policies
-                  </Link>
-                </>
+              {isAdmin() && (
+                <Link to="/admin/users" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                  User Management
+                </Link>
               )}
               <NotificationCenter />
               <ThemeToggle />
@@ -150,7 +142,7 @@ const Navbar = () => {
                           </SheetClose>
                         </>
                       )}
-                      {(isSuperAdmin() || isFaculty()) && (
+                      {(isAdmin() || isFaculty()) && (
                         <>
                           <SheetClose asChild>
                             <Link 
@@ -174,7 +166,7 @@ const Navbar = () => {
                           </SheetClose>
                         </>
                       )}
-                      {isSuperAdmin() && (
+                      {isAdmin() && (
                         <SheetClose asChild>
                           <Link 
                             to="/admin/users" 
