@@ -1,11 +1,10 @@
-
 import Layout from "@/components/layout/Layout";
-import Login from "@/components/auth/Login";
+import { RoleBasedLogin } from "@/components/auth/RoleBasedLogin";
 
 const LoginPage = () => {
   return (
     <Layout>
-      <Login />
+      <RoleBasedLogin />
     </Layout>
   );
 };

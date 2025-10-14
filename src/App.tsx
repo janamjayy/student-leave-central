@@ -19,6 +19,9 @@ import Calendar from "./pages/Calendar";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLeaves from "./pages/admin/Leaves";
 import AdminUsers from "./pages/admin/Users";
+import FacultyDashboard from "./pages/faculty/Dashboard";
+import FacultyLeaves from "./pages/faculty/Leaves";
+import FacultyMyLeaves from "./pages/faculty/MyLeaves";
 import NotFound from "./pages/NotFound";
 import AdminRoute from "./components/common/AdminRoute";
 
@@ -34,11 +37,11 @@ const ProtectedRoute = ({
   allowedRoles?: ('student' | 'admin' | 'faculty')[], 
   redirectPath?: string 
 }) => {
-  const { user, profile, loading } = useAuth();
+  const { user, userRole, loading } = useAuth();
   
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   
-  if (!user || !profile || !allowedRoles.includes(profile.role)) {
+  if (!user || !userRole || !allowedRoles.includes(userRole)) {
     return <Navigate to={redirectPath} replace />;
   }
   
@@ -105,6 +108,23 @@ const App = () => (
                   <AdminRoute>
                     <AdminUsers />
                   </AdminRoute>
+                } />
+                
+                {/* Protected Faculty Routes */}
+                <Route path="/faculty/dashboard" element={
+                  <FacultyRoute>
+                    <FacultyDashboard />
+                  </FacultyRoute>
+                } />
+                <Route path="/faculty/leaves" element={
+                  <FacultyRoute>
+                    <FacultyLeaves />
+                  </FacultyRoute>
+                } />
+                <Route path="/faculty/my-leaves" element={
+                  <FacultyRoute>
+                    <FacultyMyLeaves />
+                  </FacultyRoute>
                 } />
                 
                 <Route path="*" element={<NotFound />} />

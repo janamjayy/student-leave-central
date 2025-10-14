@@ -11,9 +11,13 @@ interface RoleBasedRouteProps {
 }
 
 const RoleBasedRoute = ({ children, allowedRoles, fallback }: RoleBasedRouteProps) => {
-  const { profile } = useAuth();
+  const { userRole, loading } = useAuth();
 
-  if (!profile || !allowedRoles.includes(profile.role)) {
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (!userRole || !allowedRoles.includes(userRole)) {
     if (fallback) {
       return <>{fallback}</>;
     }

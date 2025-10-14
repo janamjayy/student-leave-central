@@ -5,13 +5,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseService, UserProfile } from '@/services/supabaseService';
 import { toast } from 'sonner';
 
+import { roleService, AppRole } from '@/services/roleService';
+
 // Define context type
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: UserProfile | null;
+  userRole: AppRole | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, expectedRole?: AppRole) => Promise<void>;
   signup: (name: string, email: string, password: string, studentId: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -25,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   profile: null,
+  userRole: null,
   loading: true,
   login: async () => {},
   signup: async () => {},
@@ -43,13 +47,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user profile
+  // Fetch user profile and role
   const fetchUserProfile = async (userId: string) => {
     try {
       const userProfile = await supabaseService.getUserProfile(userId);
       setProfile(userProfile);
+
+      // Fetch role from user_roles table
+      const role = await roleService.getUserRole(userId);
+      setUserRole(role);
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
@@ -107,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, expectedRole?: AppRole) => {
     try {
       setLoading(true);
       const { user: authUser, error } = await supabaseService.login(email, password);
@@ -115,6 +124,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         toast.error(error);
         throw new Error(error);
+      }
+      
+      if (authUser && expectedRole) {
+        // Verify user has the expected role
+        const hasExpectedRole = await roleService.hasRole(authUser.id, expectedRole);
+        if (!hasExpectedRole) {
+          await supabaseService.logout();
+          toast.error(`Access denied. This portal is for ${expectedRole}s only.`);
+          throw new Error('Invalid credentials for this portal');
+        }
       }
       
       if (authUser) {
@@ -175,15 +194,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Role check functions
-  const isAdmin = () => profile?.role === 'admin';
-  const isFaculty = () => profile?.role === 'faculty';
-  const isStudent = () => profile?.role === 'student';
+  // Role check functions using userRole from user_roles table
+  const isAdmin = () => userRole === 'admin';
+  const isFaculty = () => userRole === 'faculty';
+  const isStudent = () => userRole === 'student';
 
   const value = {
     user,
     session,
     profile,
+    userRole,
     loading,
     login,
     signup,
