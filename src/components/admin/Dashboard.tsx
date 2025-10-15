@@ -1,56 +1,35 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, FileText, BarChart3, FileCheck } from "lucide-react";
-import UserManagement from "./UserManagement";
-import LeaveManagement from "./LeaveManagement";
-import ReportsAnalytics from "./ReportsAnalytics";
-import AuditLogs from "./AuditLogs";
+
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { useAdminDashboard } from "@/hooks/useAdminDashboard";
+import DashboardStatsCards from "./DashboardStats";
+import DashboardCharts from "./DashboardCharts";
 
 const AdminDashboard = () => {
+  const { stats, loading, refreshData } = useAdminDashboard();
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-        <p className="text-muted-foreground mt-2">
-          Manage users, leave applications, and monitor institutional compliance
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Dashboard Overview</h2>
+          <p className="text-muted-foreground">
+            Comprehensive analytics and insights for leave management
+          </p>
+        </div>
+        <Button 
+          onClick={refreshData} 
+          disabled={loading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            User Management
-          </TabsTrigger>
-          <TabsTrigger value="leaves" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Leave Management
-          </TabsTrigger>
-          <TabsTrigger value="reports" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Reports & Analytics
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="flex items-center gap-2">
-            <FileCheck className="h-4 w-4" />
-            Audit Logs
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="users" className="mt-6">
-          <UserManagement />
-        </TabsContent>
-
-        <TabsContent value="leaves" className="mt-6">
-          <LeaveManagement />
-        </TabsContent>
-
-        <TabsContent value="reports" className="mt-6">
-          <ReportsAnalytics />
-        </TabsContent>
-
-        <TabsContent value="audit" className="mt-6">
-          <AuditLogs />
-        </TabsContent>
-      </Tabs>
+      <DashboardStatsCards stats={stats} loading={loading} />
+      <DashboardCharts stats={stats} loading={loading} />
     </div>
   );
 };
