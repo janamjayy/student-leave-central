@@ -1,12 +1,13 @@
-
 import Layout from "@/components/layout/Layout";
 import AdminDashboard from "@/components/admin/Dashboard";
+import RoleBasedRoute from "@/components/common/RoleBasedRoute";
 
 const AdminDashboardPage = () => {
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-      <AdminDashboard />
+      <RoleBasedRoute allowedRoles={['admin']}>
+        <AdminDashboard />
+      </RoleBasedRoute>
     </Layout>
   );
 };
