@@ -214,6 +214,31 @@ export const supabaseService = {
     }
   },
 
+  // Fetch multiple profiles by IDs (used to resolve reviewer names)
+  getProfilesByIds: async (ids: string[]): Promise<Record<string, Pick<UserProfile, 'full_name' | 'email' | 'role'>>> => {
+    if (!ids || ids.length === 0) return {};
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .in('id', ids);
+
+      if (error) {
+        console.error('Error fetching profiles by ids:', error.message);
+        return {};
+      }
+
+      const map: Record<string, Pick<UserProfile, 'full_name' | 'email' | 'role'>> = {};
+      (data || []).forEach((p: any) => {
+        map[p.id] = { full_name: p.full_name, email: p.email, role: p.role };
+      });
+      return map;
+    } catch (e) {
+      console.error('Error in getProfilesByIds:', e);
+      return {};
+    }
+  },
+
   // Leave application functions
   submitLeave: async (leaveData: {
     leave_type: string;

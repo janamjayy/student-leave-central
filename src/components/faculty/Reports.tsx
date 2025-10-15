@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabaseService, LeaveApplication } from "@/services/supabaseService";
+import { useMemo as useReactMemo } from "react";
+import { Paperclip } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Download, Search } from "lucide-react";
 
@@ -47,6 +49,24 @@ const FacultyReports = () => {
     fetch();
   }, []);
 
+  const reviewerMap = useReactMemo(() => {
+    const ids = Array.from(new Set(leaves.map(l => l.reviewed_by).filter(Boolean) as string[]));
+    return ids;
+  }, [leaves]);
+
+  const [reviewers, setReviewers] = useState<Record<string, { full_name: string; email: string; role: string }>>({});
+
+  useEffect(() => {
+    let ignore = false;
+    const run = async () => {
+      if (reviewerMap.length === 0) return;
+      const map = await supabaseService.getProfilesByIds(reviewerMap);
+      if (!ignore) setReviewers(map);
+    };
+    run();
+    return () => { ignore = true; };
+  }, [reviewerMap]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return leaves.filter(l => {
@@ -69,8 +89,8 @@ const FacultyReports = () => {
   const exportCSV = () => {
     const rows = filtered.map(l => ({
       id: l.id,
-      student: l.student?.full_name || l.student_name,
-      student_id: l.student?.student_id || '',
+      student: l.student_name || l.student?.full_name || 'Unknown',
+      student_id: l.student?.student_id || (l as any).student_id || '',
       email: l.student?.email || '',
       leave_type: l.leave_type,
       reason: l.reason,
@@ -79,6 +99,8 @@ const FacultyReports = () => {
       applied_on: l.applied_on,
       status: l.status,
       reviewed_by: l.reviewed_by,
+      reviewer_name: l.reviewed_by ? (reviewers[l.reviewed_by]?.full_name || '') : '',
+      attachment_url: (l as any).attachment_url || '',
       comments: l.comments || '',
     }));
     const csv = toCSV(rows);
@@ -136,9 +158,11 @@ const FacultyReports = () => {
                   <TableHead>Student</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Reviewer</TableHead>
                   <TableHead>From</TableHead>
                   <TableHead>To</TableHead>
                   <TableHead>Applied</TableHead>
+                  <TableHead>Attachment</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -154,16 +178,33 @@ const FacultyReports = () => {
                   filtered.map(l => (
                     <TableRow key={l.id}>
                       <TableCell>
-                        <div className="font-medium">{l.student?.full_name || l.student_name}</div>
-                        {l.student?.student_id && (
-                          <div className="text-xs text-muted-foreground">{l.student.student_id}</div>
+                        <div className="font-medium">{l.student_name || l.student?.full_name || 'Unknown'}</div>
+                        {(l.student?.student_id || (l as any).student_id) && (
+                          <div className="text-xs text-muted-foreground">{l.student?.student_id || (l as any).student_id}</div>
                         )}
                       </TableCell>
                       <TableCell>{l.leave_type}</TableCell>
                       <TableCell className="capitalize">{l.status}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {l.reviewed_by ? (reviewers[l.reviewed_by]?.full_name || l.reviewed_by) : '—'}
+                      </TableCell>
                       <TableCell>{new Date(l.start_date).toLocaleDateString()}</TableCell>
                       <TableCell>{new Date(l.end_date).toLocaleDateString()}</TableCell>
                       <TableCell>{new Date(l.applied_on).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {(l as any).attachment_url ? (
+                          <a
+                            href={(l as any).attachment_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                          >
+                            <Paperclip className="h-4 w-4" /> View
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
