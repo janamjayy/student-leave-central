@@ -13,7 +13,7 @@ export interface DashboardStats {
   monthlyData: Array<{ name: string; value: number }>;
   statusData: Array<{ name: string; value: number; percentage: number }>;
   typeData: Array<{ name: string; value: number }>;
-  recentLeaves: LeaveApplication[];
+  recentLeaves: RecentActivityItem[];
   // New: per-month type share (raw counts; chart uses 100% stacked mode)
   typeShareSeries: TypeShareRow[];
   typeLegend: string[];
@@ -25,8 +25,19 @@ interface TypeShareRow {
   [key: string]: string | number;
 }
 
+export interface RecentActivityItem {
+  id: string;
+  name: string;
+  leave_type: string;
+  status: 'pending' | 'approved' | 'rejected';
+  applied_on: string;
+}
+
 export const useAdminDashboard = () => {
-  const [audience, setAudience] = useState<'all' | 'student' | 'faculty'>('all');
+  const [audience, setAudience] = useState<'all' | 'student' | 'faculty'>(() => {
+    const saved = localStorage.getItem('dash:audience');
+    return saved === 'student' || saved === 'faculty' || saved === 'all' ? (saved as any) : 'all';
+  });
   const [stats, setStats] = useState<DashboardStats>({
     totalLeaves: 0,
     approvedLeaves: 0,
@@ -80,7 +91,7 @@ export const useAdminDashboard = () => {
   const pendingLeaves = combined.filter(leave => leave.status === 'pending').length;
       
       // Generate monthly data (last 6 months)
-  const monthlyData = generateMonthlyData(combined as any);
+  const monthlyData = generateMonthlyData(combined);
       
       // Generate status breakdown with percentages
       const statusData = [
@@ -102,13 +113,29 @@ export const useAdminDashboard = () => {
       ];
       
     // Generate leave type data (overall counts)
-  const typeData = generateLeaveTypeData(combined as any);
+  const typeData = generateLeaveTypeData(combined);
 
     // Generate monthly type share series for last 12 months
-  const { series: typeShareSeries, legend: typeLegend } = generateTypeShareSeries(combined as any, 12);
+  const { series: typeShareSeries, legend: typeLegend } = generateTypeShareSeries(combined, 12);
       
-      // Get recent leaves (last 10) – show student leaves for now
-  const recentLeaves = (studentLeaves as LeaveApplication[]).slice(0, 10);
+      // Get recent leaves (last 10) according to audience; normalize shape
+  const recentSource = (
+    audienceSel === 'student' ? studentLeaves :
+    audienceSel === 'faculty' ? facultyLeaves :
+    [...studentLeaves, ...facultyLeaves]
+  ) as Array<LeaveApplication | FacultyLeaveApplication>;
+  const recentSorted = [...recentSource].sort((a, b) => new Date(b.applied_on).getTime() - new Date(a.applied_on).getTime());
+  const recentLeaves: RecentActivityItem[] = recentSorted.slice(0, 10).map((l) => ({
+    id: l.id,
+    name: (l as LeaveApplication).student?.full_name
+      || (l as any).student_name
+      || (l as any).faculty_name
+      || (l as any).faculty?.full_name
+      || 'Unknown',
+    leave_type: (l as any).leave_type || 'Leave',
+    status: l.status,
+    applied_on: l.applied_on
+  }));
       
       setStats({
         totalLeaves,
@@ -127,7 +154,7 @@ export const useAdminDashboard = () => {
     }
   };
 
-  const generateMonthlyData = (leaves: Array<{ applied_on: string }>) => {
+  const generateMonthlyData = <T extends { applied_on: string }>(leaves: T[]) => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentDate = new Date();
     const monthlyCount: { [key: string]: number } = {};
@@ -151,7 +178,7 @@ export const useAdminDashboard = () => {
     return Object.entries(monthlyCount).map(([name, value]) => ({ name, value }));
   };
 
-  const generateLeaveTypeData = (leaves: Array<{ leave_type: string }>) => {
+  const generateLeaveTypeData = <T extends { leave_type: string }>(leaves: T[]) => {
     const typeCount: Record<string, number> = {};
     for (const leave of leaves) {
       const raw = (leave as any)?.leave_type;
@@ -186,7 +213,7 @@ export const useAdminDashboard = () => {
     return map[key] || s;
   };
 
-  const generateTypeShareSeries = (leaves: Array<{ leave_type: string; applied_on: string }>, months: number) => {
+  const generateTypeShareSeries = <T extends { leave_type: string; applied_on: string }>(leaves: T[], months: number) => {
     // Build list of month keys (MMM YYYY), oldest first
     const monthsArr: string[] = [];
     const now = new Date();
@@ -236,37 +263,75 @@ export const useAdminDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
 
-    // Subscribe to real-time updates for student and faculty leave applications
-    const channel = supabase
-      .channel('admin-dashboard-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leave_applications'
-        },
-        () => {
-          console.log('Leave application changed, refreshing dashboard...');
-          fetchDashboardData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'faculty_leave_applications'
-        },
-        () => {
-          console.log('Faculty leave changed, refreshing dashboard...');
-          fetchDashboardData();
-        }
-      )
-      .subscribe();
+    // Resilient realtime subscription with simple retry/backoff
+    let retries = 0;
+    const maxRetries = 3;
+    let retryTimer: any;
+    let channel: any;
+
+    const subscribe = () => {
+      channel = (supabase as any)
+        .channel('admin-dashboard-changes')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'leave_applications' },
+          () => {
+            console.log('Leave application changed, refreshing dashboard...');
+            fetchDashboardData();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'leave_applications' },
+          () => {
+            console.log('Leave application updated, refreshing dashboard...');
+            fetchDashboardData();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'faculty_leave_applications' },
+          () => {
+            console.log('Faculty leave updated, refreshing dashboard...');
+            fetchDashboardData();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'faculty_leave_applications' },
+          () => {
+            console.log('Faculty leave changed, refreshing dashboard...');
+            fetchDashboardData();
+          }
+        )
+        .subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            retries = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            if (retries < maxRetries) {
+              const delay = (retries + 1) * 1000; // simple backoff
+              clearTimeout(retryTimer);
+              retryTimer = setTimeout(() => {
+                try {
+                  (supabase as any).removeChannel(channel);
+                } catch {}
+                retries += 1;
+                subscribe();
+              }, delay);
+            } else {
+              console.warn('Realtime channel closed after retries; continuing without live updates');
+            }
+          }
+        });
+    };
+
+    subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      clearTimeout(retryTimer);
+      try {
+        (supabase as any).removeChannel(channel);
+      } catch {}
     };
   }, []);
 
@@ -275,6 +340,8 @@ export const useAdminDashboard = () => {
     if (rawStudent.length > 0 || rawFaculty.length > 0) {
       computeAndSetStats(rawStudent, rawFaculty, audience);
     }
+    // persist selection
+    localStorage.setItem('dash:audience', audience);
   }, [audience]);
 
   const refreshData = () => {

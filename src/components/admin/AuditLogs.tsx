@@ -29,7 +29,7 @@ const AuditLogs = () => {
 
   const addTestLog = async () => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('audit_logs')
         .insert({ user_id: null, action: 'test', entity_type: 'diagnostic', details: { from: 'ui' } });
       if (error) throw error;
@@ -43,7 +43,7 @@ const AuditLogs = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      let query = (supabase as any)
+      let query = supabase
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -73,7 +73,7 @@ const AuditLogs = () => {
       // Resolve user names
       const ids = Array.from(new Set(rows.map(r => r.user_id).filter(Boolean)));
       if (ids.length > 0) {
-        const { data: profiles, error: pErr } = await (supabase as any)
+        const { data: profiles, error: pErr } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .in('id', ids);

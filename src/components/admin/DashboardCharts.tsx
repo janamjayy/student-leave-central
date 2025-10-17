@@ -5,8 +5,7 @@ import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChar
 import { DashboardStats } from "@/hooks/useAdminDashboard";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-import { useMemo, useState } from "react";
-import { useAdminDashboard } from "@/hooks/useAdminDashboard";
+import { useEffect, useMemo, useState } from "react";
 
 interface DashboardChartsProps {
   stats: DashboardStats;
@@ -18,7 +17,33 @@ interface DashboardChartsProps {
 const COLORS = ['#22c55e', '#eab308', '#ef4444', '#3b82f6', '#8b5cf6'];
 
 const DashboardCharts = ({ stats, loading, audience, setAudience }: DashboardChartsProps) => {
-  const [mode, setMode] = useState<'counts' | 'percent'>("counts");
+  const [mode, setMode] = useState<'counts' | 'percent'>(() => {
+    const saved = localStorage.getItem('dash:typeShareMode');
+    return (saved === 'percent' || saved === 'counts') ? saved : 'counts';
+  });
+
+  // Persist mode
+  useEffect(() => {
+    localStorage.setItem('dash:typeShareMode', mode);
+  }, [mode]);
+
+  // Persist audience controlled by parent: watch and save
+  useEffect(() => {
+    localStorage.setItem('dash:audience', audience);
+  }, [audience]);
+  // Always compute the chart data with a top-level hook (avoid calling hooks in conditionals)
+  const typeShareData = useMemo(() => {
+    if (mode === 'counts') return stats.typeShareSeries;
+    return stats.typeShareSeries.map((row: any) => {
+      const total = Number(row.total) || 0;
+      if (!total) return { ...row };
+      const out: any = { name: row.name };
+      for (const k of stats.typeLegend) {
+        out[k] = Number(row[k] || 0) / total;
+      }
+      return out;
+    });
+  }, [stats.typeShareSeries, stats.typeLegend, mode]);
   if (loading) {
     return (
       <div className="space-y-4">
@@ -85,19 +110,7 @@ const DashboardCharts = ({ stats, loading, audience, setAudience }: DashboardCha
                 <div className="h-full flex items-center justify-center text-muted-foreground">No data</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={useMemo(() => {
-                    if (mode === 'counts') return stats.typeShareSeries;
-                    // normalize to percent
-                    return stats.typeShareSeries.map((row: any) => {
-                      const total = Number(row.total) || 0;
-                      if (!total) return { ...row };
-                      const out: any = { name: row.name };
-                      for (const k of stats.typeLegend) {
-                        out[k] = Number(row[k] || 0) / total;
-                      }
-                      return out;
-                    });
-                  }, [stats.typeShareSeries, stats.typeLegend, mode])}>
+                  <LineChart data={typeShareData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis tickFormatter={(v)=> mode==='percent' ? `${Math.round(Number(v)*100)}%` : `${v}`} allowDecimals={false} />
@@ -216,7 +229,7 @@ const DashboardCharts = ({ stats, loading, audience, setAudience }: DashboardCha
                 {stats.recentLeaves.slice(0, 5).map((leave) => (
                   <div key={leave.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
-                      <p className="font-medium">{leave.student?.full_name || 'Unknown Student'}</p>
+                      <p className="font-medium">{leave.name || 'Unknown'}</p>
                       <p className="text-sm text-muted-foreground">{leave.leave_type}</p>
                     </div>
                     <div className="text-right">

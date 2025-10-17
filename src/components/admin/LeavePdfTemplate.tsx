@@ -6,6 +6,7 @@ import logo from "/public/favicon.ico"; // Replace with your institution's logo 
 interface LeavePdfTemplateProps {
   leave: any;
   approver: { name: string; id: string; role: string };
+  applicant?: { name: string; role: string; id?: string | null };
   mode?: "dark" | "light";
 }
 
@@ -18,7 +19,7 @@ const formatDate = (date: string) =>
   });
 
 const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>(
-  ({ leave, approver, mode = "light" }, ref) => {
+  ({ leave, approver, applicant, mode = "light" }, ref) => {
     return (
       <div
         ref={ref}
@@ -40,13 +41,25 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
           </div>
         </div>
 
-        {/* Applicant + Leave Info (privacy-safe) */}
+        {/* Applicant + Leave Info */}
         <div className="grid grid-cols-2 gap-6 mb-3">
           <div>
             <div>
               <span className="font-semibold">Name:</span>{" "}
-              {leave.student?.full_name || leave.student_name || leave.faculty_name || "—"}
+              {applicant?.name || leave.student?.full_name || leave.student_name || leave.faculty_name || "—"}
             </div>
+            {applicant && (
+              <>
+                <div>
+                  <span className="font-semibold">Role:</span>{" "}{applicant.role}
+                </div>
+                {applicant.id ? (
+                  <div>
+                    <span className="font-semibold">ID:</span>{" "}{applicant.id}
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
           <div>
             <div>

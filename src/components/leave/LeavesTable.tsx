@@ -163,6 +163,13 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
       }
       const approver = { name: approverName, id: '', role: '' };
 
+      // Applicant details for PDF header (real-time where possible)
+      const applicant = {
+        name: leave.student_name || leave.student?.full_name || '—',
+        role: 'Student',
+        id: leave.student?.student_id || leave.student_id || null
+      };
+
       // Create offscreen container and a known wrapper
       const container = document.createElement('div');
       container.style.position = 'fixed';
@@ -177,7 +184,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
 
       const root = createRoot(wrapper);
       const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-      root.render(<LeavePdfTemplate leave={leave as any} approver={approver} mode={mode as any} />);
+  root.render(<LeavePdfTemplate leave={leave} approver={approver} applicant={applicant} mode={mode} />);
 
       // Wait two animation frames to ensure layout/paint
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -198,7 +205,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
       if (pdfHeight > pageHeight) { pdfHeight = pageHeight; pdfWidth = (props.width * pdfHeight) / props.height; }
       pdf.addImage(imgData, 'PNG', (pageWidth - pdfWidth) / 2, 10, pdfWidth, pdfHeight);
 
-      const name = (leave as any).student_name || leave.student?.full_name || 'student';
+  const name = leave.student_name || leave.student?.full_name || 'student';
       pdf.save(`student_leave_${name}_${leave.id}.pdf`);
 
       // Cleanup
@@ -350,7 +357,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
             <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Provide brief context for your decision" />
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="invalid-reason" checked={flagInvalidReason} onCheckedChange={(v: any) => setFlagInvalidReason(!!v)} />
+            <Checkbox id="invalid-reason" checked={flagInvalidReason} onCheckedChange={(v) => setFlagInvalidReason(v === true)} />
             <Label htmlFor="invalid-reason">Flag reason as potentially invalid</Label>
           </div>
         </div>

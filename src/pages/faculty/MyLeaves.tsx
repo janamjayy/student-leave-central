@@ -131,6 +131,11 @@ const FacultyMyLeaves = () => {
         approverName = map[leave.reviewed_by]?.full_name || "";
       }
       const approver = { name: approverName, id: "", role: "" };
+      const applicant = {
+        name: leave.faculty_name || (user as any)?.user_metadata?.full_name || '—',
+        role: 'Faculty',
+        id: null as string | null
+      };
 
       // Offscreen render
       const container = document.createElement('div');
@@ -148,7 +153,7 @@ const FacultyMyLeaves = () => {
       const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
       // Provide faculty_name fallback for template
       const leaveForTemplate = { ...leave, faculty_name: leave.faculty_name || (user as any)?.user_metadata?.full_name };
-      root.render(<LeavePdfTemplate leave={leaveForTemplate as any} approver={approver} mode={mode as any} />);
+  root.render(<LeavePdfTemplate leave={leaveForTemplate as any} approver={approver} applicant={applicant} mode={mode as any} />);
 
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 

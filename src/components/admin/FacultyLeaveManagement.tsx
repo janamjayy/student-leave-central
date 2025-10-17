@@ -50,7 +50,7 @@ const FacultyLeaveManagement = () => {
   const fetchFacultyLeaves = async () => {
     try {
       setLoading(true);
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('faculty_leave_applications')
         .select('*')
         .order('applied_on', { ascending: false });
@@ -126,7 +126,7 @@ const FacultyLeaveManagement = () => {
         } catch {}
       }
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('faculty_leave_applications')
         .update({
           status,
@@ -141,7 +141,7 @@ const FacultyLeaveManagement = () => {
 
       // Log audit
       // Best-effort audit log; may fail due to RLS if not allowed
-      const { error: auditErr } = await (supabase as any).from('audit_logs').insert({
+      const { error: auditErr } = await supabase.from('audit_logs').insert({
         user_id: user?.id || null,
         action: `${status}_faculty_leave`,
         entity_type: 'faculty_leave_application',
@@ -187,7 +187,7 @@ const FacultyLeaveManagement = () => {
         toast.error('No admin name found. Please log in via Admin panel.');
         return;
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('faculty_leave_applications')
         .update({ approved_by_name: adminName, updated_at: new Date().toISOString() })
         .is('approved_by_name', null)

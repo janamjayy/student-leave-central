@@ -215,12 +215,12 @@ export const supabaseService = {
   },
 
   // Fetch multiple profiles by IDs (used to resolve reviewer names)
-  getProfilesByIds: async (ids: string[]): Promise<Record<string, Pick<UserProfile, 'full_name' | 'email' | 'role'>>> => {
+  getProfilesByIds: async (ids: string[]): Promise<Record<string, Pick<UserProfile, 'full_name' | 'email' | 'role' | 'student_id'>>> => {
     if (!ids || ids.length === 0) return {};
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role')
+        .select('id, full_name, email, role, student_id')
         .in('id', ids);
 
       if (error) {
@@ -228,9 +228,9 @@ export const supabaseService = {
         return {};
       }
 
-      const map: Record<string, Pick<UserProfile, 'full_name' | 'email' | 'role'>> = {};
+      const map: Record<string, Pick<UserProfile, 'full_name' | 'email' | 'role' | 'student_id'>> = {};
       (data || []).forEach((p: any) => {
-        map[p.id] = { full_name: p.full_name, email: p.email, role: p.role };
+        map[p.id] = { full_name: p.full_name, email: p.email, role: p.role, student_id: p.student_id };
       });
       return map;
     } catch (e) {
@@ -307,7 +307,7 @@ export const supabaseService = {
 
       // Audit: submit leave
       try {
-        await supabase
+        await (supabase as any)
           .from('audit_logs')
           .insert({
             user_id: user.id,
@@ -438,7 +438,7 @@ export const supabaseService = {
 
       // Audit: approval/rejection
       try {
-        await supabase
+        await (supabase as any)
           .from('audit_logs')
           .insert({
             user_id: reviewerId || null,
@@ -498,7 +498,7 @@ export const supabaseService = {
 
       // Audit: reviewer remarks update
       try {
-        await supabase
+        await (supabase as any)
           .from('audit_logs')
           .insert({
             user_id: reviewerId,

@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface FacultyLeaveApplication {
   id: string;
   faculty_id: string;
+  faculty_name?: string | null;
+  faculty_email?: string | null;
   leave_type: string;
   reason: string;
   start_date: string;
@@ -12,6 +14,7 @@ export interface FacultyLeaveApplication {
   status: 'pending' | 'approved' | 'rejected';
   admin_remarks?: string;
   reviewed_by?: string;
+  approved_by_name?: string | null;
   applied_on: string;
   updated_at: string;
   faculty?: {
@@ -39,7 +42,7 @@ export const facultyLeaveService = {
       }
 
       // Get faculty profile for denormalized fields
-      const { data: prof, error: profErr } = await (supabase as any)
+      const { data: prof, error: profErr } = await supabase
         .from('profiles')
         .select('full_name, email')
         .eq('id', user.id)
@@ -61,7 +64,7 @@ export const facultyLeaveService = {
         faculty_email: prof?.email || null
       };
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('faculty_leave_applications')
         .insert(insertData)
         .select()
@@ -74,7 +77,7 @@ export const facultyLeaveService = {
 
       // Audit: faculty submit
       try {
-        await (supabase as any)
+        await supabase
           .from('audit_logs')
           .insert({
             user_id: user.id,
@@ -95,7 +98,7 @@ export const facultyLeaveService = {
   // Get faculty's own leave applications
   getFacultyLeaves: async (facultyId: string): Promise<FacultyLeaveApplication[]> => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('faculty_leave_applications')
         .select('*')
         .eq('faculty_id', facultyId)
@@ -118,7 +121,7 @@ export const facultyLeaveService = {
   // Resolve profile details client-side using profiles IDs if needed.
   getAllFacultyLeaves: async (): Promise<FacultyLeaveApplication[]> => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('faculty_leave_applications')
         .select('*')
         .order('applied_on', { ascending: false });
@@ -146,7 +149,7 @@ export const facultyLeaveService = {
       // Try to resolve approver display name for denormalization
       let approved_by_name: string | null = null;
       try {
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from('profiles')
           .select('full_name')
           .eq('id', reviewerId)
@@ -154,7 +157,7 @@ export const facultyLeaveService = {
         if (!error && data?.full_name) approved_by_name = data.full_name;
       } catch {}
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('faculty_leave_applications')
         .update({
           status,
@@ -172,7 +175,7 @@ export const facultyLeaveService = {
 
       // Audit: admin approval/rejection for faculty leave
       try {
-        await (supabase as any)
+        await supabase
           .from('audit_logs')
           .insert({
             user_id: reviewerId,
