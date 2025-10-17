@@ -38,6 +38,16 @@ export const facultyLeaveService = {
         return { data: null, error: "User not authenticated" };
       }
 
+      // Get faculty profile for denormalized fields
+      const { data: prof, error: profErr } = await (supabase as any)
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .single();
+      if (profErr) {
+        console.warn('Could not fetch faculty profile for denorm fields:', profErr.message);
+      }
+
       const insertData = {
         faculty_id: user.id,
         leave_type: leaveData.leave_type,
@@ -46,7 +56,9 @@ export const facultyLeaveService = {
         end_date: leaveData.end_date,
         is_emergency: leaveData.is_emergency,
         attachment_url: leaveData.attachment_url,
-        status: 'pending' as const
+        status: 'pending' as const,
+        faculty_name: prof?.full_name || null,
+        faculty_email: prof?.email || null
       };
 
       const { data, error } = await (supabase as any)
@@ -89,14 +101,13 @@ export const facultyLeaveService = {
   },
 
   // Get all faculty leave applications (admin only)
+  // Note: We do not join profiles here because no FK relationship exists in PostgREST schema cache.
+  // Resolve profile details client-side using profiles IDs if needed.
   getAllFacultyLeaves: async (): Promise<FacultyLeaveApplication[]> => {
     try {
       const { data, error } = await (supabase as any)
         .from('faculty_leave_applications')
-        .select(`
-          *,
-          faculty:profiles(full_name, email)
-        `)
+        .select('*')
         .order('applied_on', { ascending: false });
 
       if (error) {
@@ -104,7 +115,7 @@ export const facultyLeaveService = {
         return [];
       }
 
-      return (data || []) as unknown as FacultyLeaveApplication[];
+      return (data || []) as FacultyLeaveApplication[];
     } catch (error) {
       console.error("Error in getAllFacultyLeaves:", error);
       return [];

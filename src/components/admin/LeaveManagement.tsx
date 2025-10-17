@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -15,6 +14,7 @@ import EmptyLeaveState from "@/components/leave/EmptyLeaveState";
 import LeaveReview from "./LeaveReview";
 import { LeaveApplication } from "@/services/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
+// Note: Faculty leaves are managed in FacultyLeaveManagement; this view handles student leaves only.
 
 const LeaveManagement = () => {
   const {

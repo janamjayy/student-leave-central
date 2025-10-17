@@ -11,6 +11,7 @@ import { GraduationCap, Users, Shield } from "lucide-react";
 import { AppRole } from "@/services/roleService";
 import { useAdmin } from "@/context/AdminContext";
 import { adminService } from "@/services/adminService";
+import { supabase } from "@/integrations/supabase/client";
 
 export const RoleBasedLogin = () => {
   const navigate = useNavigate();
@@ -45,6 +46,22 @@ export const RoleBasedLogin = () => {
         // Store admin in context
         console.log("[RoleBasedLogin] Setting admin in context:", admin);
         setAdmin(admin);
+
+        // Optionally establish a Supabase auth session if explicitly enabled
+        // Set VITE_ADMIN_SUPABASE_LOGIN=true in your env to enable.
+        const shouldSupabaseAdminSignIn = `${import.meta.env.VITE_ADMIN_SUPABASE_LOGIN}` === 'true';
+        if (shouldSupabaseAdminSignIn) {
+          try {
+            const { error: sbError } = await supabase.auth.signInWithPassword({ email, password });
+            if (sbError) {
+              console.warn("[RoleBasedLogin] Supabase admin sign-in failed:", sbError.message);
+            } else {
+              console.log("[RoleBasedLogin] Supabase session established for admin");
+            }
+          } catch (e) {
+            console.warn("[RoleBasedLogin] Supabase admin sign-in threw:", e);
+          }
+        }
         console.log("[RoleBasedLogin] Navigating to /admin/dashboard");
         navigate("/admin/dashboard");
         setLoading(false);

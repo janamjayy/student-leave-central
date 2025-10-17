@@ -8,12 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle, XCircle, Eye, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseService } from "@/services/supabaseService";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useAdmin } from "@/context/AdminContext";
 
 interface FacultyLeave {
   id: string;
-  user_id: string;
+  faculty_id: string;
+  faculty_name?: string;
+  faculty_email?: string;
   leave_type: string;
   reason: string;
   start_date: string;
@@ -21,7 +25,7 @@ interface FacultyLeave {
   status: 'pending' | 'approved' | 'rejected';
   applied_on: string;
   reviewed_by?: string;
-  comments?: string;
+  admin_remarks?: string;
   profile?: {
     full_name: string;
     email: string;
@@ -36,20 +40,31 @@ const FacultyLeaveManagement = () => {
   const [comments, setComments] = useState('');
   const [processing, setProcessing] = useState(false);
   const { user } = useAuth();
+  const { isAdminAuthenticated } = useAdmin();
 
   const fetchFacultyLeaves = async () => {
     try {
       setLoading(true);
       const { data, error } = await (supabase as any)
         .from('faculty_leave_applications')
-        .select(`
-          *,
-          profile:profiles(full_name, email)
-        `)
+        .select('*')
         .order('applied_on', { ascending: false });
 
       if (error) throw error;
-      setLeaves((data as any) || []);
+
+      const list: FacultyLeave[] = (data as any) || [];
+      // Resolve faculty names/emails via profiles
+      const ids = Array.from(new Set(list.map(l => l.faculty_id))).filter(Boolean) as string[];
+      const profileMap = await supabaseService.getProfilesByIds(ids);
+      const withProfiles = list.map(l => ({
+        ...l,
+        profile: profileMap[l.faculty_id] ? {
+          full_name: profileMap[l.faculty_id].full_name,
+          email: profileMap[l.faculty_id].email
+        } : undefined
+      }));
+
+      setLeaves(withProfiles);
     } catch (error: any) {
       console.error("Error fetching faculty leaves:", error);
       toast.error("Failed to load faculty leave applications");
@@ -83,7 +98,9 @@ const FacultyLeaveManagement = () => {
   }, []);
 
   const handleReview = async (status: 'approved' | 'rejected') => {
-    if (!selectedLeave || !user) return;
+    // Allow if a leave is selected; either a Supabase-auth user (faculty/admin) exists OR admin context is authenticated
+    if (!selectedLeave) return;
+    if (!user && !isAdminAuthenticated) return;
 
     try {
       setProcessing(true);
@@ -92,8 +109,8 @@ const FacultyLeaveManagement = () => {
         .from('faculty_leave_applications')
         .update({
           status,
-          reviewed_by: user.id,
-          comments,
+          reviewed_by: user?.id || null,
+          admin_remarks: comments,
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedLeave.id);
@@ -101,13 +118,17 @@ const FacultyLeaveManagement = () => {
       if (error) throw error;
 
       // Log audit
-      await (supabase as any).from('audit_logs').insert({
-        user_id: user.id,
+      // Best-effort audit log; may fail due to RLS if not allowed
+      const { error: auditErr } = await (supabase as any).from('audit_logs').insert({
+        user_id: user?.id || null,
         action: `${status}_faculty_leave`,
         entity_type: 'faculty_leave_application',
         entity_id: selectedLeave.id,
-        details: { comments }
+        details: { admin_remarks: comments }
       });
+      if (auditErr) {
+        console.debug('Audit log insert failed (non-blocking):', auditErr.message);
+      }
 
       toast.success(`Faculty leave ${status}`);
       setReviewDialogOpen(false);
@@ -184,7 +205,7 @@ const FacultyLeaveManagement = () => {
                 {leaves.map((leave) => (
                   <TableRow key={leave.id}>
                     <TableCell className="font-medium">
-                      {leave.profile?.full_name || 'Unknown'}
+                      {leave.faculty_name || leave.profile?.full_name || 'Unknown'}
                     </TableCell>
                     <TableCell>{leave.leave_type}</TableCell>
                     <TableCell>
@@ -201,7 +222,7 @@ const FacultyLeaveManagement = () => {
                           size="sm"
                           onClick={() => {
                             setSelectedLeave(leave);
-                            setComments(leave.comments || '');
+                            setComments(leave.admin_remarks || '');
                             setReviewDialogOpen(true);
                           }}
                         >
@@ -233,11 +254,11 @@ const FacultyLeaveManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Faculty Name</Label>
-                  <p className="font-medium">{selectedLeave.profile?.full_name}</p>
+                  <p className="font-medium">{selectedLeave.faculty_name || selectedLeave.profile?.full_name}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{selectedLeave.profile?.email}</p>
+                  <p className="font-medium">{selectedLeave.faculty_email || selectedLeave.profile?.email}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Leave Type</Label>

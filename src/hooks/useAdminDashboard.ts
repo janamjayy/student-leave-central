@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabaseService, LeaveApplication } from "@/services/supabaseService";
+import { facultyLeaveService, FacultyLeaveApplication } from "@/services/facultyLeaveService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -31,16 +32,20 @@ export const useAdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const leaves = await supabaseService.getAllLeaves();
+      const [studentLeaves, facultyLeaves] = await Promise.all([
+        supabaseService.getAllLeaves(),
+        facultyLeaveService.getAllFacultyLeaves()
+      ]);
       
       // Calculate basic stats
-      const totalLeaves = leaves.length;
-      const approvedLeaves = leaves.filter(leave => leave.status === 'approved').length;
-      const rejectedLeaves = leaves.filter(leave => leave.status === 'rejected').length;
-      const pendingLeaves = leaves.filter(leave => leave.status === 'pending').length;
+  const combined = [...studentLeaves, ...facultyLeaves] as Array<LeaveApplication | FacultyLeaveApplication>;
+  const totalLeaves = combined.length;
+  const approvedLeaves = combined.filter(leave => leave.status === 'approved').length;
+  const rejectedLeaves = combined.filter(leave => leave.status === 'rejected').length;
+  const pendingLeaves = combined.filter(leave => leave.status === 'pending').length;
       
       // Generate monthly data (last 6 months)
-      const monthlyData = generateMonthlyData(leaves);
+  const monthlyData = generateMonthlyData(combined as any);
       
       // Generate status breakdown with percentages
       const statusData = [
@@ -62,10 +67,10 @@ export const useAdminDashboard = () => {
       ];
       
       // Generate leave type data
-      const typeData = generateLeaveTypeData(leaves);
+  const typeData = generateLeaveTypeData(combined as any);
       
       // Get recent leaves (last 10)
-      const recentLeaves = leaves.slice(0, 10);
+  const recentLeaves = (studentLeaves as LeaveApplication[]).slice(0, 10);
       
       setStats({
         totalLeaves,
@@ -85,7 +90,7 @@ export const useAdminDashboard = () => {
     }
   };
 
-  const generateMonthlyData = (leaves: LeaveApplication[]) => {
+  const generateMonthlyData = (leaves: Array<{ applied_on: string }>) => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentDate = new Date();
     const monthlyCount: { [key: string]: number } = {};
@@ -109,7 +114,7 @@ export const useAdminDashboard = () => {
     return Object.entries(monthlyCount).map(([name, value]) => ({ name, value }));
   };
 
-  const generateLeaveTypeData = (leaves: LeaveApplication[]) => {
+  const generateLeaveTypeData = (leaves: Array<{ leave_type: string }>) => {
     const typeCount: { [key: string]: number } = {};
     
     leaves.forEach(leave => {
@@ -123,7 +128,7 @@ export const useAdminDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
 
-    // Subscribe to real-time updates for leave applications
+    // Subscribe to real-time updates for student and faculty leave applications
     const channel = supabase
       .channel('admin-dashboard-changes')
       .on(
@@ -135,6 +140,18 @@ export const useAdminDashboard = () => {
         },
         () => {
           console.log('Leave application changed, refreshing dashboard...');
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'faculty_leave_applications'
+        },
+        () => {
+          console.log('Faculty leave changed, refreshing dashboard...');
           fetchDashboardData();
         }
       )

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Shield, User, GraduationCap, RefreshCw, UserPlus, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Shield, User, GraduationCap, RefreshCw, UserPlus, Trash2, AlertTriangle, Pencil, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { roleService, AppRole } from "@/services/roleService";
 import { toast } from "sonner";
@@ -29,6 +29,11 @@ const UserManagement = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState<{ full_name: string; email: string; student_id?: string }>({ full_name: '', email: '', student_id: '' });
+  const [editRole, setEditRole] = useState<AppRole>('student');
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState<'joined-desc' | 'name-asc' | 'name-desc' | 'role'>('joined-desc');
   
   // Form state for adding users
   const [newUser, setNewUser] = useState({
@@ -207,6 +212,73 @@ const UserManagement = () => {
     }
   };
 
+  const openEdit = (u: UserWithRole) => {
+    setSelectedUser(u);
+    setEditForm({ full_name: u.full_name, email: u.email, student_id: u.student_id || '' });
+    setEditRole(u.role);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedUser) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editForm.full_name,
+          email: editForm.email,
+          student_id: editForm.student_id || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedUser.id);
+      if (error) throw error;
+      // Update role in same save if changed
+      if (editRole !== selectedUser.role) {
+        await roleService.removeRole(selectedUser.id, selectedUser.role);
+        const { success, error: roleErr } = await roleService.assignRole(selectedUser.id, editRole);
+        if (!success) throw new Error(roleErr || 'Failed to update role');
+      }
+      toast.success('User updated');
+      setEditDialogOpen(false);
+      setSelectedUser(null);
+      fetchUsers();
+    } catch (e: any) {
+      console.error('Error updating user:', e);
+      toast.error(e.message || 'Failed to update user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter and sort derived list
+  const filteredUsers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = users;
+    if (q) {
+      list = list.filter(u =>
+        (u.full_name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.student_id || '').toString().toLowerCase().includes(q)
+      );
+    }
+    switch (sortBy) {
+      case 'name-asc':
+        list = [...list].sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+        break;
+      case 'name-desc':
+        list = [...list].sort((a, b) => (b.full_name || '').localeCompare(a.full_name || ''));
+        break;
+      case 'role':
+        list = [...list].sort((a, b) => (a.role || '').localeCompare(b.role || ''));
+        break;
+      case 'joined-desc':
+      default:
+        list = [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+    return list;
+  }, [users, query, sortBy]);
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin':
@@ -250,7 +322,25 @@ const UserManagement = () => {
             Manage users, assign roles, and control access permissions
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <div className="relative hidden md:block">
+            <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-8 w-64"
+              placeholder="Search name, email, ID..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Sort" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="joined-desc">Newest</SelectItem>
+              <SelectItem value="name-asc">Name A–Z</SelectItem>
+              <SelectItem value="name-desc">Name Z–A</SelectItem>
+              <SelectItem value="role">Role</SelectItem>
+            </SelectContent>
+          </Select>
           <Button onClick={fetchUsers} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -289,7 +379,7 @@ const UserManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.full_name}</TableCell>
                   <TableCell>{user.email}</TableCell>
@@ -319,6 +409,14 @@ const UserManagement = () => {
                       {updating === user.id && (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(user)}
+                        title="Edit details"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -438,6 +536,45 @@ const UserManagement = () => {
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Delete User
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update basic details for this user.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit_full_name">Full Name</Label>
+              <Input id="edit_full_name" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="edit_email">Email</Label>
+              <Input id="edit_email" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="edit_student_id">Student/Employee ID</Label>
+              <Input id="edit_student_id" value={editForm.student_id} onChange={(e) => setEditForm({ ...editForm, student_id: e.target.value })} />
+            </div>
+            <div>
+              <Label>Role</Label>
+              <Select value={editRole} onValueChange={(v: any) => setEditRole(v)}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="faculty">Faculty</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
