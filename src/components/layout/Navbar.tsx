@@ -62,10 +62,7 @@ const Navbar = () => {
                     <Shield className="inline h-4 w-4 mr-1" />
                     Dashboard
                   </Link>
-                  <Link to="/admin/leaves" className="text-sm font-medium transition-colors hover:text-foreground/80">
-                    <CalendarCheck className="inline h-4 w-4 mr-1" />
-                    Manage Leaves
-                  </Link>
+                  
                   
                 </>}
               {isFaculty() && <>
