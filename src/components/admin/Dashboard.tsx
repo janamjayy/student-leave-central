@@ -11,7 +11,7 @@ import ReportsAnalytics from "./ReportsAnalytics";
 import AuditLogs from "./AuditLogs";
 
 const AdminDashboard = () => {
-  const { stats, loading, refreshData } = useAdminDashboard();
+  const { stats, loading, refreshData, audience, setAudience } = useAdminDashboard();
 
   return (
     <div className="space-y-6">
@@ -60,7 +60,7 @@ const AdminDashboard = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <DashboardCharts stats={stats} loading={loading} />
+          <DashboardCharts stats={stats} loading={loading} audience={audience} setAudience={setAudience} />
           <ReportsAnalytics />
         </TabsContent>
 

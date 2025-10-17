@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Download } from "lucide-react";
+import { Loader2, RefreshCw, Download, Eraser, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -25,15 +25,47 @@ const AuditLogs = () => {
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const clearFilters = () => { setActionFilter(""); setTypeFilter(""); setDateFrom(""); setDateTo(""); };
+
+  const addTestLog = async () => {
+    try {
+      const { error } = await (supabase as any)
+        .from('audit_logs')
+        .insert({ user_id: null, action: 'test', entity_type: 'diagnostic', details: { from: 'ui' } });
+      if (error) throw error;
+      toast.success('Test log added');
+      fetchLogs();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to add test log');
+    }
+  };
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const { data, error } = await (supabase as any)
+      let query = (supabase as any)
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(200);
+
+      if (actionFilter) {
+        // ilike for case-insensitive contains
+        query = query.ilike('action', `%${actionFilter}%`);
+      }
+      if (typeFilter) {
+        query = query.ilike('entity_type', `%${typeFilter}%`);
+      }
+      if (dateFrom) {
+        query = query.gte('created_at', new Date(dateFrom).toISOString());
+      }
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23,59,59,999);
+        query = query.lte('created_at', end.toISOString());
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       const rows = (data as AuditLog[]) || [];
       setLogs(rows);
@@ -62,7 +94,7 @@ const AuditLogs = () => {
     fetchLogs();
     const channel = supabase.channel('audit').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, fetchLogs).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [actionFilter, typeFilter, dateFrom, dateTo]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter(l => {
@@ -114,6 +146,8 @@ const AuditLogs = () => {
         <div className="flex gap-2">
           <Button onClick={fetchLogs} size="sm" variant="outline"><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
           <Button onClick={exportCsv} size="sm" variant="secondary"><Download className="h-4 w-4 mr-1" />Export CSV</Button>
+          <Button onClick={clearFilters} size="sm" variant="outline"><Eraser className="h-4 w-4 mr-1" />Clear</Button>
+          <Button onClick={addTestLog} size="sm" variant="outline"><PlusCircle className="h-4 w-4 mr-1" />Test Log</Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -145,6 +179,11 @@ const AuditLogs = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {filteredLogs.length === 0 && !loading && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-6">No logs found. Try Refresh, Clear, or create a Test Log.</TableCell>
+              </TableRow>
+            )}
             {filteredLogs.map(log => (
               <TableRow key={log.id}>
                 <TableCell><Badge>{log.action}</Badge></TableCell>

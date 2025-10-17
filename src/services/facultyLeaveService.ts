@@ -72,6 +72,19 @@ export const facultyLeaveService = {
         return { data: null, error: error.message };
       }
 
+      // Audit: faculty submit
+      try {
+        await (supabase as any)
+          .from('audit_logs')
+          .insert({
+            user_id: user.id,
+            action: 'submit_faculty_leave',
+            entity_type: 'faculty_leave_application',
+            entity_id: data.id,
+            details: { leave_type: leaveData.leave_type }
+          });
+      } catch {}
+
       return { data, error: null };
     } catch (error) {
       console.error("Error in submitFacultyLeave:", error);
@@ -156,6 +169,19 @@ export const facultyLeaveService = {
         console.error("Error updating faculty leave status:", error.message);
         return { success: false, error: error.message };
       }
+
+      // Audit: admin approval/rejection for faculty leave
+      try {
+        await (supabase as any)
+          .from('audit_logs')
+          .insert({
+            user_id: reviewerId,
+            action: `${status}_faculty_leave`,
+            entity_type: 'faculty_leave_application',
+            entity_id: leaveId,
+            details: remarks ? { remarks } : null
+          });
+      } catch {}
 
       return { success: true, error: null };
     } catch (error) {

@@ -1,17 +1,24 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 import { DashboardStats } from "@/hooks/useAdminDashboard";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import { useMemo, useState } from "react";
+import { useAdminDashboard } from "@/hooks/useAdminDashboard";
 
 interface DashboardChartsProps {
   stats: DashboardStats;
   loading: boolean;
+  audience: 'all' | 'student' | 'faculty';
+  setAudience: (a: 'all' | 'student' | 'faculty') => void;
 }
 
 const COLORS = ['#22c55e', '#eab308', '#ef4444', '#3b82f6', '#8b5cf6'];
 
-const DashboardCharts = ({ stats, loading }: DashboardChartsProps) => {
+const DashboardCharts = ({ stats, loading, audience, setAudience }: DashboardChartsProps) => {
+  const [mode, setMode] = useState<'counts' | 'percent'>("counts");
   if (loading) {
     return (
       <div className="space-y-4">
@@ -25,8 +32,8 @@ const DashboardCharts = ({ stats, loading }: DashboardChartsProps) => {
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="monthly">Monthly Trends</TabsTrigger>
         <TabsTrigger value="status">Status Breakdown</TabsTrigger>
-        <TabsTrigger value="types">Leave Types</TabsTrigger>
         <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsTrigger value="type-share">Type Share (12m)</TabsTrigger>
       </TabsList>
 
       <TabsContent value="monthly">
@@ -40,18 +47,68 @@ const DashboardCharts = ({ stats, loading }: DashboardChartsProps) => {
           <CardContent>
             <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.monthlyData}>
+                <LineChart data={stats.monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar
-                    dataKey="value"
-                    fill="hsl(var(--primary))"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
+                  <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
               </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="type-share">
+        <Card>
+          <CardHeader>
+            <CardTitle>Leave Types (Last 12 Months)</CardTitle>
+            <CardDescription>Multi-series line chart; toggle between counts and percent. Types outside the top group into Others.</CardDescription>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">View</span>
+                <Toggle pressed={mode==='counts'} onPressedChange={() => setMode('counts')}>Counts</Toggle>
+                <Toggle pressed={mode==='percent'} onPressedChange={() => setMode('percent')}>Percent</Toggle>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Audience</span>
+                <Button size="sm" variant={audience==='all'?'default':'outline'} onClick={()=> setAudience('all')}>All</Button>
+                <Button size="sm" variant={audience==='student'?'default':'outline'} onClick={()=> setAudience('student')}>Student</Button>
+                <Button size="sm" variant={audience==='faculty'?'default':'outline'} onClick={()=> setAudience('faculty')}>Faculty</Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[350px]">
+              {stats.typeShareSeries.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-muted-foreground">No data</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={useMemo(() => {
+                    if (mode === 'counts') return stats.typeShareSeries;
+                    // normalize to percent
+                    return stats.typeShareSeries.map((row: any) => {
+                      const total = Number(row.total) || 0;
+                      if (!total) return { ...row };
+                      const out: any = { name: row.name };
+                      for (const k of stats.typeLegend) {
+                        out[k] = Number(row[k] || 0) / total;
+                      }
+                      return out;
+                    });
+                  }, [stats.typeShareSeries, stats.typeLegend, mode])}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis tickFormatter={(v)=> mode==='percent' ? `${Math.round(Number(v)*100)}%` : `${v}`} allowDecimals={false} />
+                    <Tooltip formatter={(v:any)=> mode==='percent' ? `${Math.round(Number(v)*100)}%` : v} />
+                    <Legend />
+                    {stats.typeLegend.map((t, i) => (
+                      <Line key={t} type="monotone" dataKey={t} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -110,33 +167,7 @@ const DashboardCharts = ({ stats, loading }: DashboardChartsProps) => {
         </Card>
       </TabsContent>
 
-      <TabsContent value="types">
-        <Card>
-          <CardHeader>
-            <CardTitle>Leave Types Distribution</CardTitle>
-            <CardDescription>
-              Most common types of leave applications
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.typeData} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} />
-                  <Tooltip />
-                  <Bar
-                    dataKey="value"
-                    fill="hsl(var(--accent))"
-                    radius={[0, 4, 4, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+      
 
       <TabsContent value="analytics">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

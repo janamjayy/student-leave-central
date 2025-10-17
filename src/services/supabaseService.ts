@@ -305,6 +305,21 @@ export const supabaseService = {
         return { data: null, error: insertResponse.error.message };
       }
 
+      // Audit: submit leave
+      try {
+        await supabase
+          .from('audit_logs')
+          .insert({
+            user_id: user.id,
+            action: 'submit_leave',
+            entity_type: 'leave_application',
+            entity_id: insertResponse.data.id,
+            details: { leave_type: leaveData.leave_type }
+          });
+      } catch (e) {
+        console.debug('Audit log insert (submit_leave) failed (non-blocking)');
+      }
+
       return { data: insertResponse.data, error: null };
     } catch (error) {
       console.error("Error in submitLeave:", error);
@@ -421,6 +436,21 @@ export const supabaseService = {
         return { success: false, error: error.message };
       }
 
+      // Audit: approval/rejection
+      try {
+        await supabase
+          .from('audit_logs')
+          .insert({
+            user_id: reviewerId || null,
+            action: `${status}_leave`,
+            entity_type: 'leave_application',
+            entity_id: leaveId,
+            details: comments ? { comments } : null
+          });
+      } catch (e) {
+        console.debug('Audit log insert (status) failed (non-blocking)');
+      }
+
       return { success: true, error: null };
     } catch (error) {
       console.error("Error in updateLeaveStatus:", error);
@@ -464,6 +494,21 @@ export const supabaseService = {
       if (error) {
         console.error("Error updating remarks/NLP:", error.message);
         return { success: false, error: error.message };
+      }
+
+      // Audit: reviewer remarks update
+      try {
+        await supabase
+          .from('audit_logs')
+          .insert({
+            user_id: reviewerId,
+            action: 'update_remarks',
+            entity_type: 'leave_application',
+            entity_id: leaveId,
+            details: { is_reason_invalid }
+          });
+      } catch (e) {
+        console.debug('Audit log insert (remarks) failed (non-blocking)');
       }
       return { success: true, error: null };
     } catch (error) {
