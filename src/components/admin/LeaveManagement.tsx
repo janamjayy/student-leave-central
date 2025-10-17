@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -14,6 +14,7 @@ import LeavesTable from "@/components/leave/LeavesTable";
 import EmptyLeaveState from "@/components/leave/EmptyLeaveState";
 import LeaveReview from "./LeaveReview";
 import { LeaveApplication } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 
 const LeaveManagement = () => {
   const {
@@ -27,6 +28,28 @@ const LeaveManagement = () => {
     hasFilters,
     refreshLeaves
   } = useLeaveHistory();
+
+  // Real-time subscription for student leave updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('leave-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leave_applications'
+        },
+        () => {
+          refreshLeaves();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshLeaves]);
 
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [selectedTab, setSelectedTab] = useState("all");
