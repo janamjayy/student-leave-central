@@ -130,12 +130,24 @@ export const facultyLeaveService = {
     remarks?: string
   ): Promise<{ success: boolean; error: string | null }> => {
     try {
+      // Try to resolve approver display name for denormalization
+      let approved_by_name: string | null = null;
+      try {
+        const { data, error } = await (supabase as any)
+          .from('profiles')
+          .select('full_name')
+          .eq('id', reviewerId)
+          .single();
+        if (!error && data?.full_name) approved_by_name = data.full_name;
+      } catch {}
+
       const { error } = await (supabase as any)
         .from('faculty_leave_applications')
         .update({
           status,
           reviewed_by: reviewerId,
           admin_remarks: remarks,
+          approved_by_name,
           updated_at: new Date().toISOString()
         })
         .eq('id', leaveId);

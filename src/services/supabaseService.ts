@@ -404,13 +404,13 @@ export const supabaseService = {
     }
   },
 
-  updateLeaveStatus: async (leaveId: string, status: 'approved' | 'rejected', reviewerId: string, comments?: string): Promise<{ success: boolean; error: string | null }> => {
+  updateLeaveStatus: async (leaveId: string, status: 'approved' | 'rejected', reviewerId?: string | null, comments?: string): Promise<{ success: boolean; error: string | null }> => {
     try {
       const { error } = await supabase
         .from('leave_applications')
         .update({ 
           status, 
-          reviewed_by: reviewerId,
+          reviewed_by: reviewerId || null,
           comments,
           updated_at: new Date().toISOString()
         })

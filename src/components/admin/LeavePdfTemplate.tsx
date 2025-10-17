@@ -40,20 +40,12 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
           </div>
         </div>
 
-        {/* User + Leave Info */}
+        {/* Applicant + Leave Info (privacy-safe) */}
         <div className="grid grid-cols-2 gap-6 mb-3">
           <div>
             <div>
               <span className="font-semibold">Name:</span>{" "}
-              {leave.student?.full_name || leave.student_name}
-            </div>
-            <div>
-              <span className="font-semibold">Role:</span>{" "}
-              {leave.student?.role ? leave.student.role.charAt(0).toUpperCase() + leave.student.role.slice(1) : "Student"}
-            </div>
-            <div>
-              <span className="font-semibold">ID:</span>{" "}
-              {leave.student?.student_id || leave.student_id}
+              {leave.student?.full_name || leave.student_name || leave.faculty_name || "—"}
             </div>
           </div>
           <div>
@@ -84,7 +76,9 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
               <tr>
                 <td className="font-semibold border px-3 py-1">Approved By</td>
                 <td className="border px-3 py-1">
-                  {approver.name} ({approver.role}, ID: {approver.id})
+                  {(approver.name && approver.name.trim().length > 0)
+                    ? approver.name
+                    : (leave.approved_by_name || '—')}
                 </td>
               </tr>
               <tr>
@@ -101,7 +95,7 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
         <div className="mt-8 flex items-end justify-between">
           <div>
             <QRCodeCanvas
-              value={`Leave#${leave.id ?? ""}|${leave.student?.full_name ?? ""}|${leave.status}`}
+              value={`Leave#${leave.id ?? ""}|${(leave.student?.full_name ?? leave.student_name ?? leave.faculty_name) ?? ""}|${leave.status}`}
               size={60}
               bgColor={mode === "dark" ? "#18181b" : "#fff"}
               fgColor={mode === "dark" ? "#fff" : "#222"}
@@ -114,10 +108,7 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
           </div>
         </div>
 
-        {/* Watermark */}
-        <div className="fixed bottom-16 right-8 opacity-10 text-6xl pointer-events-none select-none">
-          HR Verified
-        </div>
+        {/* Watermark removed as requested */}
       </div>
     );
   }

@@ -6,12 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle, XCircle, Eye, RefreshCw } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Eye, RefreshCw, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import LeavePdfTemplate from "@/components/admin/LeavePdfTemplate";
+import { createRoot } from "react-dom/client";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseService } from "@/services/supabaseService";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useAdmin } from "@/context/AdminContext";
+import { adminService } from "@/services/adminService";
 
 interface FacultyLeave {
   id: string;
@@ -105,12 +110,29 @@ const FacultyLeaveManagement = () => {
     try {
       setProcessing(true);
 
+      // Try to resolve approver display name (Supabase user profile or AdminContext fallback)
+      let approverName: string | null = null;
+      if (user?.id) {
+        try {
+          const map = await supabaseService.getProfilesByIds([user.id]);
+          approverName = map[user.id]?.full_name || null;
+        } catch {}
+      }
+      if (!approverName && isAdminAuthenticated) {
+        // AdminContext: try to read stored admin name from localStorage
+        try {
+          const raw = localStorage.getItem('admin_user');
+          if (raw) approverName = (JSON.parse(raw)?.full_name as string) || null;
+        } catch {}
+      }
+
       const { error } = await (supabase as any)
         .from('faculty_leave_applications')
         .update({
           status,
           reviewed_by: user?.id || null,
           admin_remarks: comments,
+          approved_by_name: approverName,
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedLeave.id);
@@ -156,6 +178,87 @@ const FacultyLeaveManagement = () => {
     }
   };
 
+  // One-click repair: fill missing approver names on existing rows
+  const fixMissingApproverNames = async () => {
+    try {
+      const raw = localStorage.getItem('admin_user');
+      const adminName = raw ? (JSON.parse(raw)?.full_name as string) : '';
+      if (!adminName) {
+        toast.error('No admin name found. Please log in via Admin panel.');
+        return;
+      }
+      const { error } = await (supabase as any)
+        .from('faculty_leave_applications')
+        .update({ approved_by_name: adminName, updated_at: new Date().toISOString() })
+        .is('approved_by_name', null)
+        .in('status', ['approved','rejected']);
+      if (error) throw error;
+      toast.success('Missing approver names filled');
+      fetchFacultyLeaves();
+    } catch (e: any) {
+      console.error('Fix approver names failed', e);
+      toast.error(e?.message || 'Failed to fill approver names');
+    }
+  };
+
+  const downloadFacultyPdf = async (leave: FacultyLeave) => {
+    try {
+      // Resolve approver display name if reviewed_by present
+      let approverName = leave as any as any;
+      // Safely coerce to access field if present
+      // prefer denormalized name
+      // @ts-ignore
+      approverName = (leave as any).approved_by_name || "";
+      if (!approverName && leave.reviewed_by) {
+        const map = await supabaseService.getProfilesByIds([leave.reviewed_by]);
+        approverName = map[leave.reviewed_by]?.full_name || "";
+      }
+      const approver = { name: approverName, id: "", role: "" } as any;
+
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-10000px';
+      container.style.top = '0';
+      container.style.width = '210mm';
+      document.body.appendChild(container);
+
+      const wrapper = document.createElement('div');
+      wrapper.id = 'faculty-admin-pdf-wrapper';
+      container.appendChild(wrapper);
+
+      const root = createRoot(wrapper);
+      const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      const leaveForTemplate: any = { ...leave };
+      root.render(<LeavePdfTemplate leave={leaveForTemplate} approver={approver} mode={mode as any} />);
+
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const target = wrapper as HTMLDivElement;
+      if (!target) throw new Error('PDF container not found');
+
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: mode === 'dark' ? '#18181b' : '#ffffff',
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = 210; const pageHeight = 297;
+      const props = pdf.getImageProperties(imgData);
+      let pdfWidth = pageWidth; let pdfHeight = (props.height * pdfWidth) / props.width;
+      if (pdfHeight > pageHeight) { pdfHeight = pageHeight; pdfWidth = (props.width * pdfHeight) / props.height; }
+      pdf.addImage(imgData, 'PNG', (pageWidth - pdfWidth) / 2, 10, pdfWidth, pdfHeight);
+
+      const name = leave.faculty_name || leave.profile?.full_name || 'faculty';
+      pdf.save(`faculty_leave_${name}_${leave.id}.pdf`);
+
+      root.unmount();
+      document.body.removeChild(container);
+    } catch (e) {
+      console.error('Faculty PDF generation failed', e);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -174,10 +277,15 @@ const FacultyLeaveManagement = () => {
             Review and approve faculty leave requests
           </p>
         </div>
-        <Button onClick={fetchFacultyLeaves} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={fetchFacultyLeaves} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button onClick={fixMissingApproverNames} variant="outline" size="sm">
+            Fill Missing Approver Names
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -229,6 +337,11 @@ const FacultyLeaveManagement = () => {
                           <Eye className="h-4 w-4 mr-1" />
                           Review
                         </Button>
+                        {leave.status !== 'pending' && (
+                          <Button variant="outline" size="sm" onClick={() => downloadFacultyPdf(leave)}>
+                            <Download className="h-4 w-4 mr-1" /> PDF
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
