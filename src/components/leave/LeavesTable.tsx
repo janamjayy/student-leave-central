@@ -43,7 +43,7 @@ interface LeavesTableProps {
 
 const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
   const { isAdmin, isFaculty, user } = useAuth();
-  const { isAdminAuthenticated } = useAdmin();
+  const { isAdminAuthenticated, admin } = useAdmin();
   const showStudentInfo = isAdmin() || isFaculty() || isAdminAuthenticated;
   const canAct = isAdmin() || isFaculty() || isAdminAuthenticated;
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -76,10 +76,13 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
     // Admin path: proceed immediately (no remarks required)
     try {
       setUpdatingId(leave.id);
+      const approverName = (isAdminAuthenticated && admin?.full_name) ? admin.full_name : undefined;
       const { success, error } = await supabaseService.updateLeaveStatus(
         leave.id,
         status,
-        user?.id || null
+        user?.id || null,
+        undefined,
+        approverName
       );
       if (!success) throw new Error(error || "Failed to update status");
       toast.success(`Leave ${status}`);
@@ -161,6 +164,9 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
           approverName = map[approverId]?.full_name || '';
         } catch (_) {}
       }
+      if (!approverName && isAdminAuthenticated && admin?.full_name) {
+        approverName = admin.full_name;
+      }
       const approver = { name: approverName, id: '', role: '' };
 
       // Applicant details for PDF header (real-time where possible)
@@ -186,8 +192,9 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
       const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
   root.render(<LeavePdfTemplate leave={leave} approver={approver} applicant={applicant} mode={mode} />);
 
-      // Wait two animation frames to ensure layout/paint
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  // Ensure QR and fonts render before capture
+  await new Promise(res => setTimeout(res, 200));
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
       const target = wrapper as HTMLDivElement;
       if (!target) throw new Error('PDF container not found');

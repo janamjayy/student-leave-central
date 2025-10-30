@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useAdmin } from "@/context/AdminContext";
+import { adminService } from "@/services/adminService";
 import { supabaseService } from "@/services/supabaseService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,10 +14,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const Profile = () => {
   const { user, profile } = useAuth();
-  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const { admin, isAdminAuthenticated, setAdmin } = useAdmin();
+  const [fullName, setFullName] = useState(() => (isAdminAuthenticated ? (admin?.full_name || "") : (profile?.full_name || "")));
   const [studentId, setStudentId] = useState(profile?.student_id || "");
   const [department, setDepartment] = useState(profile?.department || "");
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
+  const [avatarUrl, setAvatarUrl] = useState(() => (isAdminAuthenticated ? (admin?.avatar_url || "") : (profile?.avatar_url || "")));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -30,8 +33,41 @@ const Profile = () => {
 
   const isStudent = profile?.role === "student";
   const isFaculty = profile?.role === "faculty";
+  const isAdminUser = isAdminAuthenticated && !user; // AdminContext-only flow
 
   const onSaveProfile = async () => {
+    // Admin profile update path (no Supabase auth user)
+    if (isAdminUser && admin) {
+      try {
+        setSaving(true);
+        let newAvatarUrl = avatarUrl;
+        if (avatarFile) {
+          // Try to upload to public storage using admin id as folder
+          const { url, error } = await supabaseService.uploadProfileAvatar(avatarFile, admin.id);
+          if (error) {
+            // Allow name update even if avatar upload fails
+            toast.warning?.(typeof error === 'string' ? error : 'Avatar upload failed; saving name only');
+          } else if (url) {
+            newAvatarUrl = url;
+          }
+        }
+
+        const { success, error } = await adminService.updateProfile(admin.id, { full_name: fullName, avatar_url: newAvatarUrl });
+        if (!success) throw new Error(error || 'Failed to update admin profile');
+        setAvatarUrl(newAvatarUrl);
+        // Update AdminContext so navbar/avatar reflects changes
+        setAdmin({ ...admin, full_name: fullName, avatar_url: newAvatarUrl } as any);
+        toast.success('Profile updated');
+        setJustSaved(true);
+        setTimeout(() => setJustSaved(false), 600);
+      } catch (e: any) {
+        toast.error(e?.message || 'Failed to update profile');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     if (!user) return;
     try {
       setSaving(true);
@@ -166,7 +202,8 @@ const Profile = () => {
             </Button>
           </div>
 
-          {/* Inline security section within the same card */}
+          {/* Inline security section within the same card (hide for AdminContext-only) */}
+          {!isAdminUser && (
           <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -208,6 +245,7 @@ const Profile = () => {
               </div>
             )}
           </div>
+          )}
         </CardContent>
       </Card>
       

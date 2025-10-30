@@ -20,6 +20,30 @@ const formatDate = (date: string) =>
 
 const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>(
   ({ leave, approver, applicant, mode = "light" }, ref) => {
+    const buildQrUrl = () => {
+      try {
+        const payload = {
+          id: leave.id ?? null,
+          name: (applicant?.name || leave.student?.full_name || leave.student_name || leave.faculty_name) ?? "",
+          role: applicant?.role || (leave.student_name ? 'Student' : 'Faculty'),
+          status: leave.status,
+          leave_type: leave.leave_type,
+          start_date: leave.start_date,
+          end_date: leave.end_date,
+          generated_at: new Date().toISOString()
+        };
+        const json = JSON.stringify(payload);
+        const encoded = typeof window !== 'undefined'
+          ? btoa(unescape(encodeURIComponent(json)))
+          : Buffer.from(json, 'utf-8').toString('base64');
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        return `${origin}/verify?q=${encoded}`;
+      } catch {
+        // Fallback to simple text if encoding fails
+        return `Leave#${leave.id ?? ""}|${(leave.student?.full_name ?? leave.student_name ?? leave.faculty_name) ?? ""}|${leave.status}`;
+      }
+    };
+
     return (
       <div
         ref={ref}
@@ -36,8 +60,8 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
         <div className="flex items-center gap-3 border-b pb-2 mb-4">
           <img src={logo} alt="Institution Logo" className="w-12 h-12 rounded" />
           <div>
-            <h2 className="font-bold text-2xl">Leave Application Certificate</h2>
-            <p className="text-sm opacity-70">For audit/verification use</p>
+            <h2 className="font-bold text-2xl">Leave Application </h2>
+            
           </div>
         </div>
 
@@ -108,8 +132,8 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
         <div className="mt-8 flex items-end justify-between">
           <div>
             <QRCodeCanvas
-              value={`Leave#${leave.id ?? ""}|${(leave.student?.full_name ?? leave.student_name ?? leave.faculty_name) ?? ""}|${leave.status}`}
-              size={60}
+              value={buildQrUrl()}
+              size={96}
               bgColor={mode === "dark" ? "#18181b" : "#fff"}
               fgColor={mode === "dark" ? "#fff" : "#222"}
             />

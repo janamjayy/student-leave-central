@@ -155,7 +155,9 @@ const FacultyMyLeaves = () => {
       const leaveForTemplate = { ...leave, faculty_name: leave.faculty_name || (user as any)?.user_metadata?.full_name };
   root.render(<LeavePdfTemplate leave={leaveForTemplate as any} approver={approver} applicant={applicant} mode={mode as any} />);
 
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  // Ensure QR and fonts render before capture
+  await new Promise(res => setTimeout(res, 200));
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
       const target = wrapper as HTMLDivElement;
       if (!target) throw new Error('PDF container not found');

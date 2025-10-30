@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { useAdmin } from "@/context/AdminContext";
 import { useAuth } from "@/context/AuthContext";
-import { LeaveApplication } from "@/services/supabaseService";
+import { LeaveApplication, supabaseService } from "@/services/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
 // Note: Faculty leaves are managed in FacultyLeaveManagement; this view handles student leaves only.
 
@@ -172,6 +172,20 @@ const LeaveManagement = () => {
     );
   }
 
+  const handleBackfill = async () => {
+    try {
+      const { updated, failed, error } = await supabaseService.backfillApprovedByNames();
+      if (error) {
+        toast.error(`Backfill failed: ${error}`);
+        return;
+      }
+      toast.success(`Backfill complete: ${updated} updated, ${failed} skipped`);
+      refreshLeaves();
+    } catch (e: any) {
+      toast.error(e?.message || 'Backfill failed');
+    }
+  };
+
   return (
     <>
     <Card className="w-full shadow-lg">
@@ -182,8 +196,12 @@ const LeaveManagement = () => {
       <CardContent className="pt-6">
         <div className="mb-6">
           {(isAdminAuthenticated || isAdmin()) && (
-            <div className="flex justify-end mb-4">
-              <Button variant="secondary" onClick={() => setApplyOpen(true)}>Apply on behalf of student</Button>
+            <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
+              <div className="text-sm text-muted-foreground">Admin tools</div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleBackfill}>Backfill approver names</Button>
+                <Button variant="secondary" onClick={() => setApplyOpen(true)}>Apply on behalf of student</Button>
+              </div>
             </div>
           )}
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>

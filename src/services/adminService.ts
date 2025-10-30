@@ -7,6 +7,7 @@ export interface AdminUser {
   password: string;
   full_name: string;
   created_at: string;
+  avatar_url?: string | null;
 }
 
 /**
@@ -37,5 +38,18 @@ export const adminService = {
     }
     console.log("[AdminService] Login successful:", data);
     return { admin: data as AdminUser, error: null };
+  },
+
+  updateProfile: async (id: string, update: Partial<Pick<AdminUser, 'full_name' | 'avatar_url'>>): Promise<{ success: boolean; error: string | null }> => {
+    try {
+      const { error } = await supabase
+        .from('admin_users')
+        .update({ ...update, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) return { success: false, error: error.message };
+      return { success: true, error: null };
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Unexpected error updating admin profile' };
+    }
   }
 };

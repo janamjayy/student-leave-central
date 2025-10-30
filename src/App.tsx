@@ -30,6 +30,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import TestAuth from "./pages/TestAuth";
 import AdminRoute from "./components/common/AdminRoute";
+import Verify from "./pages/Verify";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
                   <Route path="/admin-signup" element={<AdminSignup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/test-auth" element={<TestAuth />} />
+                  <Route path="/verify" element={<Verify />} />
                   {/* Protected Student Routes */}
                   <Route path="/apply-leave" element={<StudentRoute><ApplyLeave /></StudentRoute>} />
                   <Route path="/student/dashboard" element={<StudentRoute><StudentDashboard /></StudentRoute>} />

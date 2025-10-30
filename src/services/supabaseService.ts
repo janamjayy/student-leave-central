@@ -24,6 +24,7 @@ export interface LeaveApplication {
   reviewed_by?: string;
   applied_on: string;
   updated_at: string;
+  approved_by_name?: string | null;
   student_name: string;
   student?: {
     full_name: string;
@@ -473,14 +474,36 @@ export const supabaseService = {
     }
   },
 
-  updateLeaveStatus: async (leaveId: string, status: 'approved' | 'rejected', reviewerId?: string | null, comments?: string): Promise<{ success: boolean; error: string | null }> => {
+  updateLeaveStatus: async (
+    leaveId: string,
+    status: 'approved' | 'rejected',
+    reviewerId?: string | null,
+    comments?: string,
+    approverName?: string
+  ): Promise<{ success: boolean; error: string | null }> => {
     try {
+      // Try to resolve approver display name for denormalization
+      let approved_by_name: string | null = null;
+      try {
+        if (approverName && approverName.trim().length > 0) {
+          approved_by_name = approverName.trim();
+        } else if (reviewerId) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', reviewerId)
+            .single();
+          if (!error && data?.full_name) approved_by_name = data.full_name;
+        }
+      } catch {}
+
       const { error } = await supabase
         .from('leave_applications')
         .update({ 
           status, 
           reviewed_by: reviewerId || null,
           comments,
+          approved_by_name,
           updated_at: new Date().toISOString()
         })
         .eq('id', leaveId);
@@ -692,5 +715,85 @@ export const supabaseService = {
         }
       )
       .subscribe();
+  },
+
+  // Admin utility: backfill approved_by_name for approved leaves missing it
+  backfillApprovedByNames: async (): Promise<{ updated: number; failed: number; error?: string }> => {
+    try {
+      const supabaseClient: any = supabase;
+      const { data: leaves, error } = await supabaseClient
+        .from('leave_applications')
+        .select('id, reviewed_by, approved_by_name')
+        .eq('status', 'approved')
+        .or('approved_by_name.is.null,approved_by_name.eq.')
+        .limit(1000);
+      if (error) {
+        return { updated: 0, failed: 0, error: error.message };
+      }
+      const list = leaves || [];
+      let updated = 0; let failed = 0;
+
+      // Cache for reviewer profile names
+      const reviewerIds = Array.from(new Set(list.map((l: any) => l.reviewed_by).filter(Boolean)));
+      const nameMap: Record<string, string> = {};
+      if (reviewerIds.length > 0) {
+        try {
+          const { data: profs } = await supabaseClient
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', reviewerIds);
+          (profs || []).forEach((p: any) => { if (p.full_name) nameMap[p.id] = p.full_name; });
+        } catch {}
+      }
+
+      for (const l of list) {
+        try {
+          let approverName: string | null = null;
+          if (l.reviewed_by && nameMap[l.reviewed_by]) {
+            approverName = nameMap[l.reviewed_by];
+          }
+          // Fallback: audit logs
+          if (!approverName) {
+            try {
+              const { data: audit } = await supabaseClient
+                .from('audit_logs')
+                .select('user_id')
+                .eq('entity_type', 'leave_application')
+                .eq('entity_id', l.id)
+                .eq('action', 'approved_leave')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              const userId = audit?.user_id;
+              if (userId) {
+                if (!nameMap[userId]) {
+                  const { data: p } = await supabaseClient
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', userId)
+                    .single();
+                  if (p?.full_name) nameMap[userId] = p.full_name;
+                }
+                approverName = nameMap[userId] || null;
+              }
+            } catch {}
+          }
+
+          if (!approverName) { failed++; continue; }
+
+          const { error: upErr } = await supabaseClient
+            .from('leave_applications')
+            .update({ approved_by_name: approverName, updated_at: new Date().toISOString() })
+            .eq('id', l.id);
+          if (upErr) { failed++; } else { updated++; }
+        } catch {
+          failed++;
+        }
+      }
+
+      return { updated, failed };
+    } catch (e: any) {
+      return { updated: 0, failed: 0, error: e?.message || 'Unexpected error' };
+    }
   }
 };
