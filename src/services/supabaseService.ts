@@ -45,6 +45,7 @@ export interface UserProfile {
   updated_at: string;
   leave_quota?: number;
   otp_secret?: string;
+  avatar_url?: string;
 }
 
 export interface Notification {
@@ -349,6 +350,59 @@ export const supabaseService = {
     } catch (error) {
       console.error("Error in uploadAttachment:", error);
       return { url: null, error: "An unexpected error occurred" };
+    }
+  },
+
+  // Profile avatar upload
+  uploadProfileAvatar: async (file: File, userId: string): Promise<{ url: string | null; error: string | null }> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${crypto.randomUUID()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('profile_pics')
+        .upload(fileName, file, { upsert: true });
+
+      if (error) {
+        console.error('Error uploading avatar:', error.message);
+        return { url: null, error: error.message };
+      }
+
+      const { data: pub } = supabase.storage
+        .from('profile_pics')
+        .getPublicUrl(data.path);
+
+      return { url: pub.publicUrl, error: null };
+    } catch (e) {
+      console.error('Error in uploadProfileAvatar:', e);
+      return { url: null, error: 'Unexpected error uploading avatar' };
+    }
+  },
+
+  // Update profile helper
+  updateProfile: async (userId: string, update: Partial<Omit<UserProfile, 'id' | 'created_at' | 'updated_at' | 'email'>>): Promise<{ success: boolean; error: string | null }> => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ ...update, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (error) return { success: false, error: error.message };
+      return { success: true, error: null };
+    } catch (e) {
+      console.error('Error in updateProfile:', e);
+      return { success: false, error: 'Unexpected error updating profile' };
+    }
+  },
+
+  // Change password for current user
+  changePassword: async (newPassword: string): Promise<{ success: boolean; error: string | null }> => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) return { success: false, error: error.message };
+      return { success: true, error: null };
+    } catch (e) {
+      console.error('Error in changePassword:', e);
+      return { success: false, error: 'Unexpected error changing password' };
     }
   },
 

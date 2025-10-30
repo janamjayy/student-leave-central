@@ -191,24 +191,24 @@ const Index: React.FC = () => {
     students: [
       {
         content: "This system has saved me so much time! I can apply for leave and track my requests anywhere, anytime.",
-        author: "Rahul Sharma",
-        role: "B.Tech Student"
+        author: "Janam",
+        role: "MCA Student"
       },
       {
         content: "The notifications feature is amazing! I get instant updates when my leave is approved.",
-        author: "Priya Patel",
-        role: "MBA Student"
+        author: "Dhvani Patel",
+        role: "BCA Student"
       }
     ],
     administrators: [
       {
         content: "Managing student leaves has never been easier. The dashboard gives me all the information I need at a glance.",
-        author: "Dr. Amit Singh",
+        author: "Hardik Kasliwal",
         role: "Department Head"
       },
       {
         content: "The reporting feature allows me to track attendance patterns and make informed decisions.",
-        author: "Prof. Meera Joshi",
+        author: "Arvind Padyachi",
         role: "Student Coordinator"
       }
     ]

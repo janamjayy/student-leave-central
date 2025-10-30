@@ -18,7 +18,11 @@ import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client"; // FIX: import supabase
 
-const LeaveApplicationForm = () => {
+type LeaveApplicationFormProps = {
+  onSuccess?: () => void;
+};
+
+const LeaveApplicationForm = ({ onSuccess }: LeaveApplicationFormProps) => {
   const { user } = useAuth();
 
   const [quota, setQuota] = useState<number>(0);
@@ -131,8 +135,12 @@ const LeaveApplicationForm = () => {
       
       toast.success("Your leave application has been successfully submitted!");
       
-      // Redirect to leave history page
-      navigate('/my-leaves');
+      // Either close modal via callback or navigate to My Leaves
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/my-leaves');
+      }
     } catch (err) {
       console.error("Error submitting leave application:", err);
       setError(err instanceof Error ? err.message : "Error submitting application. Please try again.");

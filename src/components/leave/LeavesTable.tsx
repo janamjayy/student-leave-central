@@ -220,7 +220,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
     <>
     <div className="border rounded-md overflow-hidden">
       <Table>
-        <TableCaption>List of leave applications</TableCaption>
+        
         <TableHeader>
           <TableRow>
             {showStudentInfo && <TableHead>Student</TableHead>}

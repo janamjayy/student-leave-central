@@ -23,7 +23,10 @@ import FacultyDashboard from "./pages/faculty/Dashboard";
 import FacultyLeaves from "./pages/faculty/Leaves";
 import FacultyMyLeaves from "./pages/faculty/MyLeaves";
 import FacultyAnalytics from "./pages/faculty/Analytics";
+import FacultyMyAnalytics from "./pages/faculty/MyAnalytics";
 import FacultyReports from "./pages/faculty/Reports";
+import StudentDashboard from "./pages/student/Dashboard";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import TestAuth from "./pages/TestAuth";
 import AdminRoute from "./components/common/AdminRoute";
@@ -82,8 +85,10 @@ const App = () => (
                   <Route path="/test-auth" element={<TestAuth />} />
                   {/* Protected Student Routes */}
                   <Route path="/apply-leave" element={<StudentRoute><ApplyLeave /></StudentRoute>} />
+                  <Route path="/student/dashboard" element={<StudentRoute><StudentDashboard /></StudentRoute>} />
                   <Route path="/my-leaves" element={<ProtectedRoute><MyLeaves /></ProtectedRoute>} />
                   <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute allowedRoles={['student','faculty']}><Profile /></ProtectedRoute>} />
                   {/* Protected Admin Routes */}
                   <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                   <Route path="/admin/leaves" element={<AdminRoute><AdminLeaves /></AdminRoute>} />
@@ -93,6 +98,7 @@ const App = () => (
                   <Route path="/faculty/leaves" element={<FacultyRoute><FacultyLeaves /></FacultyRoute>} />
                   <Route path="/faculty/my-leaves" element={<FacultyRoute><FacultyMyLeaves /></FacultyRoute>} />
                   <Route path="/faculty/analytics" element={<FacultyRoute><FacultyAnalytics /></FacultyRoute>} />
+                  <Route path="/faculty/my-analytics" element={<FacultyRoute><FacultyMyAnalytics /></FacultyRoute>} />
                   <Route path="/faculty/reports" element={<FacultyRoute><FacultyReports /></FacultyRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
