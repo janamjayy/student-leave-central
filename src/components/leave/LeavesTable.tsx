@@ -57,48 +57,6 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
     leave: LeaveApplication;
     status: "approved" | "rejected";
   } | null>(null);
-  // Admin override modal state
-  const [overrideOpen, setOverrideOpen] = useState(false);
-  const [overrideStatus, setOverrideStatus] = useState<"approved" | "rejected">("approved");
-  const [overrideComments, setOverrideComments] = useState("");
-  const [overrideTarget, setOverrideTarget] = useState<LeaveApplication | null>(null);
-
-  // Review dialog (admin-style like faculty leaves)
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [reviewTarget, setReviewTarget] = useState<LeaveApplication | null>(null);
-  const [reviewComments, setReviewComments] = useState("");
-  const [reviewProcessing, setReviewProcessing] = useState(false);
-
-  const openReview = (leave: LeaveApplication) => {
-    setReviewTarget(leave);
-    setReviewComments(leave.comments || "");
-    setReviewOpen(true);
-  };
-
-  const handleReviewAction = async (status: "approved" | "rejected") => {
-    if (!reviewTarget) return;
-    try {
-      setReviewProcessing(true);
-      const approverName = (isAdminAuthenticated && admin?.full_name) ? admin.full_name : undefined;
-      const { success, error } = await supabaseService.updateLeaveStatus(
-        reviewTarget.id,
-        status,
-        user?.id || null,
-        reviewComments,
-        approverName
-      );
-      if (!success) throw new Error(error || `Failed to ${status}`);
-      toast.success(`Leave ${status}`);
-      setReviewOpen(false);
-      setReviewTarget(null);
-      setReviewComments("");
-      onUpdated && onUpdated();
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to update');
-    } finally {
-      setReviewProcessing(false);
-    }
-  };
 
   const handleUpdate = async (
     leave: LeaveApplication,
@@ -172,46 +130,6 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
     } finally {
       setUpdatingId(null);
     }
-  };
-
-  const confirmOverride = async () => {
-    if (!overrideTarget) return;
-    try {
-      setUpdatingId(overrideTarget.id);
-      const approverName = (isAdminAuthenticated && admin?.full_name) ? admin.full_name : undefined;
-      const { success, error } = await supabaseService.updateLeaveStatus(
-        overrideTarget.id,
-        overrideStatus,
-        user?.id || null,
-        overrideComments,
-        approverName,
-        { overrideFrom: overrideTarget.status as any }
-      );
-      if (!success) throw new Error(error || 'Failed to override');
-      toast.success(`Decision changed to ${overrideStatus}`);
-      setOverrideOpen(false);
-      setOverrideTarget(null);
-      setOverrideComments("");
-      onUpdated && onUpdated();
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to change decision');
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  // Helper: allow override only if decision was made today
-  const canOverrideToday = (leave: LeaveApplication) => {
-    // Only admins can override
-    if (!(isAdminAuthenticated || isAdmin())) return false;
-    if (leave.status === 'pending') return false;
-    const ts = leave.status_decided_at || leave.updated_at;
-    if (!ts) return false;
-    const decided = new Date(ts);
-    const now = new Date();
-    return decided.getFullYear() === now.getFullYear() &&
-      decided.getMonth() === now.getMonth() &&
-      decided.getDate() === now.getDate();
   };
 
   // Resolve reviewer names for current page
@@ -386,14 +304,6 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openReview(leave)}
-                        title="Review"
-                      >
-                        Review
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
                         disabled={updatingId === leave.id}
                         onClick={() => handleUpdate(leave, "rejected")}
                         className="text-red-600"
@@ -425,29 +335,11 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openReview(leave)}
-                        title="Review"
-                      >
-                        Review
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
                         onClick={() => downloadStudentPdf(leave)}
                         title="Download PDF"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                      {canOverrideToday(leave) && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => { setOverrideTarget(leave); setOverrideStatus(leave.status === 'approved' ? 'rejected' : 'approved'); setOverrideComments(''); setOverrideOpen(true); }}
-                          title="Change decision"
-                        >
-                          Change Decision
-                        </Button>
-                      )}
                     </div>
                   )}
                 </TableCell>
@@ -481,111 +373,6 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
           <AlertDialogAction onClick={confirmWithRemarks}>
             {pendingAction?.status === "approved" ? "Approve" : "Reject"}
           </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  {/* Admin override dialog */}
-    <AlertDialog open={overrideOpen} onOpenChange={setOverrideOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Change decision</AlertDialogTitle>
-          <AlertDialogDescription>
-            Only admins can override a previous decision. Select the new status and add optional comments. This action will be logged.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="space-y-3 py-2">
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium">New status:</label>
-            <div className="flex gap-2">
-              <Button variant={overrideStatus==='approved' ? 'default' : 'outline'} size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => setOverrideStatus('approved')}>Approve</Button>
-              <Button variant={overrideStatus==='rejected' ? 'destructive' : 'outline'} size="sm" onClick={() => setOverrideStatus('rejected')}>Reject</Button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="override-comments">Comments</Label>
-            <Textarea id="override-comments" value={overrideComments} onChange={(e) => setOverrideComments(e.target.value)} placeholder="Why is this decision being changed?" />
-          </div>
-        </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setOverrideTarget(null)}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmOverride}>
-            Apply Change
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  {/* Review dialog for student leaves (admin/faculty) */}
-    <AlertDialog open={reviewOpen} onOpenChange={setReviewOpen}>
-      <AlertDialogContent className="max-w-2xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Review Student Leave Application</AlertDialogTitle>
-          <AlertDialogDescription>
-            Review the details and approve or reject the leave request.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {reviewTarget && (
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-muted-foreground">Student Name</Label>
-                <p className="font-medium">{reviewTarget.student_name || reviewTarget.student?.full_name || 'Unknown'}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">ID</Label>
-                <p className="font-medium">{reviewTarget.student?.student_id || reviewTarget.student_id || '—'}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Leave Type</Label>
-                <p className="font-medium">{reviewTarget.leave_type}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Status</Label>
-                <div className="mt-1">
-                  <LeaveStatusBadge status={reviewTarget.status} />
-                </div>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Start Date</Label>
-                <p className="font-medium">{formatDate(reviewTarget.start_date)}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">End Date</Label>
-                <p className="font-medium">{formatDate(reviewTarget.end_date)}</p>
-              </div>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Reason</Label>
-              <p className="font-medium mt-1">{reviewTarget.reason}</p>
-            </div>
-            {reviewTarget.status === 'pending' && (
-              <div>
-                <Label htmlFor="review-comments">Comments (Optional)</Label>
-                <Textarea id="review-comments" value={reviewComments} onChange={(e) => setReviewComments(e.target.value)} rows={3} />
-              </div>
-            )}
-          </div>
-        )}
-        <AlertDialogFooter>
-          {reviewTarget?.status === 'pending' ? (
-            <>
-              <AlertDialogCancel disabled={reviewProcessing}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-red-500 hover:bg-red-600"
-                onClick={() => handleReviewAction('rejected')}
-                disabled={reviewProcessing}
-              >
-                {reviewProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reject'}
-              </AlertDialogAction>
-              <AlertDialogAction
-                onClick={() => handleReviewAction('approved')}
-                disabled={reviewProcessing}
-              >
-                {reviewProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Approve'}
-              </AlertDialogAction>
-            </>
-          ) : (
-            <AlertDialogAction onClick={() => setReviewOpen(false)}>Close</AlertDialogAction>
-          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
