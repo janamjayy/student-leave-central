@@ -56,16 +56,11 @@ const UserManagement = () => {
 
       if (profilesError) throw profilesError;
 
-      // Fetch roles for each user
-      const usersWithRoles: UserWithRole[] = [];
-      
-      for (const profile of profiles || []) {
-        const role = await roleService.getUserRole(profile.id);
-        usersWithRoles.push({
-          ...profile,
-          role: role || 'student'
-        });
-      }
+      // Map roles directly from profiles.role (fallback to 'student')
+      const usersWithRoles: UserWithRole[] = (profiles || []).map((profile: any) => ({
+        ...profile,
+        role: (profile.role as AppRole) || 'student'
+      }));
 
       setUsers(usersWithRoles);
     } catch (error) {
@@ -93,17 +88,7 @@ const UserManagement = () => {
           fetchUsers();
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_roles'
-        },
-        () => {
-          fetchUsers();
-        }
-      )
+      // roles are stored on profiles now, so no separate user_roles subscription
       .subscribe();
 
     return () => {

@@ -22,6 +22,7 @@ export const RoleBasedLogin = () => {
   const [error, setError] = useState("");
   const [selectedRole, setSelectedRole] = useState<AppRole>('student');
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [triedBootstrap, setTriedBootstrap] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -32,6 +33,14 @@ export const RoleBasedLogin = () => {
     return `Sign in as ${roleNames[selectedRole]}`;
   }, [selectedRole]);
 
+  // Helper: fast-fail timeout wrapper to prevent long hanging network calls
+  const withTimeout = async <T,>(promise: Promise<T> | PromiseLike<T>, ms = 8000, label = 'request'): Promise<T> => {
+    return await Promise.race<T>([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)) as Promise<T>,
+    ]);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -40,30 +49,69 @@ export const RoleBasedLogin = () => {
     try {
       if (selectedRole === "admin") {
         // Supabase-native admin login: create a Supabase session and verify profile role
-        const { data, error: sbError } = await supabase.auth.signInWithPassword({ email, password });
-        if (sbError || !data?.user) {
+        let authUser = null as null | { id: string };
+        try {
+          const { data, error: sbError } = await withTimeout<any>(
+            supabase.auth.signInWithPassword({ email, password }),
+            8000,
+            'sign-in'
+          );
+          if (!sbError && data?.user) authUser = { id: data.user.id };
+        } catch (signErr: any) {
+          // Ignore here, we’ll try bootstrap flow next
+        }
+
+        if (!authUser) {
           // Fallback: If this admin exists in admin_users but not in Auth, bootstrap via Edge Function then retry
-          const { data: bootstrapRes, error: bootstrapErr } = await supabase.functions.invoke('bootstrap-admin', { body: { email, password } });
-          if (bootstrapErr || !bootstrapRes?.success) {
-            setError(sbError?.message || bootstrapErr?.message || "Invalid admin credentials.");
+          setTriedBootstrap(true);
+          try {
+            const { data: bootstrapRes, error: bootstrapErr } = await withTimeout<any>(
+              supabase.functions.invoke('bootstrap-admin', { body: { email, password } }),
+              6000,
+              'bootstrap-admin'
+            );
+            if (bootstrapErr || !bootstrapRes?.success) {
+              throw new Error(bootstrapErr?.message || 'Admin bootstrap failed');
+            }
+          } catch (bootErr: any) {
+            setError(
+              (bootErr?.message?.includes('timed out')
+                ? 'Admin provisioning is not available. Please deploy the bootstrap-admin edge function and try again.'
+                : bootErr?.message) ||
+                'Admin provisioning failed. Please contact the system administrator.'
+            );
             setLoading(false);
             return;
           }
           // Retry sign-in after bootstrap
-          const retry = await supabase.auth.signInWithPassword({ email, password });
-          if (retry.error || !retry.data?.user) {
-            setError(retry.error?.message || "Sign-in failed after bootstrap.");
+          try {
+            const retry = await withTimeout<any>(
+              supabase.auth.signInWithPassword({ email, password }),
+              8000,
+              'sign-in (retry)'
+            );
+            if (retry.error || !retry.data?.user) {
+              setError(retry.error?.message || "Sign-in failed after provisioning.");
+              setLoading(false);
+              return;
+            }
+            authUser = { id: retry.data.user.id };
+          } catch (retryErr: any) {
+            setError(retryErr?.message || 'Sign-in failed after provisioning.');
             setLoading(false);
             return;
           }
-          data.user = retry.data.user;
         }
         // Fetch profile and ensure role is admin
-        const { data: profData, error: profErr } = await supabase
+        const { data: profData, error: profErr } = await withTimeout<any>(
+          supabase
           .from('profiles')
           .select('id, full_name, email, role, created_at')
-          .eq('id', data.user.id)
-          .maybeSingle();
+          .eq('id', (authUser as any).id)
+          .maybeSingle(),
+          6000,
+          'profile fetch'
+        );
         if (profErr || !profData) {
           setError("Admin profile not found.");
           setLoading(false);
@@ -96,7 +144,14 @@ export const RoleBasedLogin = () => {
           break;
       }
     } catch (err: any) {
-      setError(err.message || "Login failed. Please check your credentials.");
+      // Common extension noise: suppress unrelated contentScript errors in UI, but unlock the spinner
+      const msg = String(err?.message || '')
+      if (msg.includes('Receiving end does not exist')) {
+        console.debug('Ignored extension contentScript error:', err);
+        setError('Login was interrupted by a browser extension. Please retry or disable the extension for this site.');
+      } else {
+        setError(err.message || "Login failed. Please check your credentials.");
+      }
     } finally {
       setLoading(false);
     }
