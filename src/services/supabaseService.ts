@@ -24,6 +24,9 @@ export interface LeaveApplication {
   reviewed_by?: string;
   applied_on: string;
   updated_at: string;
+  // Timestamp when the first non-pending decision was made.
+  // Used to allow admin overrides only on the same calendar day.
+  status_decided_at?: string | null;
   approved_by_name?: string | null;
   student_name: string;
   student?: {
@@ -479,9 +482,52 @@ export const supabaseService = {
     status: 'approved' | 'rejected',
     reviewerId?: string | null,
     comments?: string,
-    approverName?: string
+    approverName?: string,
+    options?: { overrideFrom?: 'approved' | 'rejected' | 'pending' }
   ): Promise<{ success: boolean; error: string | null }> => {
     try {
+      // Prefer using Edge Function when enabled for secure status updates
+  // Default to Edge Function unless explicitly disabled
+  const envFlag = (import.meta as any)?.env?.VITE_USE_EDGE_FUNCTIONS;
+  const useEdge = envFlag === undefined ? true : envFlag === 'true';
+      if (useEdge) {
+        const payload = { leaveId, status, reviewerId: reviewerId || null, comments: comments || null, approverName: approverName || null, options: options || null };
+        const { data, error } = await (supabase as any).functions.invoke('update-leave-status', { body: payload });
+        if (error) {
+          console.error('Edge function error:', error.message || error);
+          return { success: false, error: error.message || 'Edge function failed' };
+        }
+        return { success: !!data?.success, error: data?.error || null };
+      }
+
+      // Fetch current leave to evaluate state and same-day override rule
+      const { data: current, error: fetchErr } = await supabase
+        .from('leave_applications')
+        .select('id, status, status_decided_at, updated_at')
+        .eq('id', leaveId)
+        .maybeSingle();
+      if (fetchErr) {
+        console.error('Failed to fetch current leave:', fetchErr.message);
+        return { success: false, error: 'Unable to fetch leave record' };
+      }
+
+      // Enforce: Admin override allowed only on the same calendar day as the initial decision
+      if (options?.overrideFrom && options.overrideFrom !== 'pending' && options.overrideFrom !== status) {
+        // Determine decision timestamp (prefer status_decided_at, fallback to updated_at)
+        const decisionTs = (current as any)?.status_decided_at || (current as any)?.updated_at || null;
+        if (!decisionTs) {
+          return { success: false, error: 'Cannot change decision: decision time unavailable for this record.' };
+        }
+        const decisionDateLocal = new Date(decisionTs);
+        const nowLocal = new Date();
+        const sameDay = decisionDateLocal.getFullYear() === nowLocal.getFullYear() &&
+          decisionDateLocal.getMonth() === nowLocal.getMonth() &&
+          decisionDateLocal.getDate() === nowLocal.getDate();
+        if (!sameDay) {
+          return { success: false, error: 'Decision can only be changed on the same day it was made.' };
+        }
+      }
+
       // Try to resolve approver display name for denormalization
       let approved_by_name: string | null = null;
       try {
@@ -497,15 +543,30 @@ export const supabaseService = {
         }
       } catch {}
 
+      const updatePayload: any = {
+        status,
+        reviewed_by: reviewerId || null,
+        comments,
+        approved_by_name,
+        updated_at: new Date().toISOString()
+      };
+
+      if (options?.overrideFrom && options.overrideFrom !== status) {
+        updatePayload.overridden_by_admin = true;
+        updatePayload.overridden_at = new Date().toISOString();
+        updatePayload.overridden_from = options.overrideFrom;
+      }
+
+      // If this is the first time moving from pending -> approved/rejected, stamp status_decided_at
+      // Do not change status_decided_at on overrides so that "same-day" window is based on the initial decision
+      const previouslyPending = (current as any)?.status === 'pending';
+      if (previouslyPending && (!options || !options.overrideFrom || options.overrideFrom === 'pending')) {
+        updatePayload.status_decided_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
         .from('leave_applications')
-        .update({ 
-          status, 
-          reviewed_by: reviewerId || null,
-          comments,
-          approved_by_name,
-          updated_at: new Date().toISOString()
-        })
+        .update(updatePayload)
         .eq('id', leaveId);
 
       if (error) {
@@ -515,17 +576,22 @@ export const supabaseService = {
 
       // Audit: approval/rejection
       try {
-        await (supabase as any)
-          .from('audit_logs')
-          .insert({
-            user_id: reviewerId || null,
-            action: `${status}_leave`,
-            entity_type: 'leave_application',
-            entity_id: leaveId,
-            details: comments ? { comments } : null
-          });
+        // Only attempt client-side audit log if a Supabase user is authenticated.
+        // For AdminContext (no Supabase session) or Edge Function path, skip to avoid 400s.
+        const { data: u } = await supabase.auth.getUser();
+        if (u?.user?.id) {
+          await (supabase as any)
+            .from('audit_logs')
+            .insert({
+              user_id: u.user.id,
+              action: `${status}_leave`,
+              entity_type: 'leave_application',
+              entity_id: leaveId,
+              details: comments ? { comments } : null
+            });
+        }
       } catch (e) {
-        console.debug('Audit log insert (status) failed (non-blocking)');
+        console.debug('Audit log insert (status) skipped/failed (non-blocking)');
       }
 
       return { success: true, error: null };

@@ -39,36 +39,50 @@ export const RoleBasedLogin = () => {
 
     try {
       if (selectedRole === "admin") {
-        console.log("[RoleBasedLogin] Starting admin login");
-        const { admin, error: adminError } = await adminService.login(email, password);
-        if (adminError) {
-          setError(adminError);
-          setLoading(false);
-          return;
-        }
-        if (!admin) {
-          setError("Invalid admin credentials.");
-          setLoading(false);
-          return;
-        }
-        console.log("[RoleBasedLogin] Setting admin in context:", admin);
-        setAdmin(admin);
-
-        const shouldSupabaseAdminSignIn = `${import.meta.env.VITE_ADMIN_SUPABASE_LOGIN}` === 'true';
-        if (shouldSupabaseAdminSignIn) {
-          try {
-            const { error: sbError } = await supabase.auth.signInWithPassword({ email, password });
-            if (sbError) {
-              console.warn("[RoleBasedLogin] Supabase admin sign-in failed:", sbError.message);
-            } else {
-              console.log("[RoleBasedLogin] Supabase session established for admin");
-            }
-          } catch (e) {
-            console.warn("[RoleBasedLogin] Supabase admin sign-in threw:", e);
+        // Supabase-native admin login: create a Supabase session and verify profile role
+        const { data, error: sbError } = await supabase.auth.signInWithPassword({ email, password });
+        if (sbError || !data?.user) {
+          // Fallback: If this admin exists in admin_users but not in Auth, bootstrap via Edge Function then retry
+          const { data: bootstrapRes, error: bootstrapErr } = await supabase.functions.invoke('bootstrap-admin', { body: { email, password } });
+          if (bootstrapErr || !bootstrapRes?.success) {
+            setError(sbError?.message || bootstrapErr?.message || "Invalid admin credentials.");
+            setLoading(false);
+            return;
           }
+          // Retry sign-in after bootstrap
+          const retry = await supabase.auth.signInWithPassword({ email, password });
+          if (retry.error || !retry.data?.user) {
+            setError(retry.error?.message || "Sign-in failed after bootstrap.");
+            setLoading(false);
+            return;
+          }
+          data.user = retry.data.user;
         }
-        console.log("[RoleBasedLogin] Navigating to /admin/dashboard");
-        navigate("/admin/dashboard");
+        // Fetch profile and ensure role is admin
+        const { data: profData, error: profErr } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, role, created_at')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        if (profErr || !profData) {
+          setError("Admin profile not found.");
+          setLoading(false);
+          return;
+        }
+        if (profData.role !== 'admin') {
+          setError("You are not authorized as an admin.");
+          setLoading(false);
+          return;
+        }
+        // Set AdminContext for UI
+        setAdmin({
+            id: profData.id,
+            email: profData.email,
+            full_name: profData.full_name,
+            created_at: profData.created_at,
+            avatar_url: null,
+          });
+        navigate('/admin/dashboard');
         setLoading(false);
         return;
       }
@@ -215,3 +229,4 @@ export const RoleBasedLogin = () => {
     </div>
   );
 };
+export default RoleBasedLogin;
