@@ -2,57 +2,52 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = 'student' | 'faculty' | 'admin';
 
-// Centralized role access now uses profiles.role directly to avoid relying on user_roles table.
 export const roleService = {
-  // Get user's role from profiles
+  // Get user's role from user_roles table
   getUserRole: async (userId: string): Promise<AppRole | null> => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.rpc('get_user_role', {
+        _user_id: userId
+      });
 
       if (error) {
         console.error("Error fetching user role:", error);
         return null;
       }
 
-      return (data?.role as AppRole) ?? 'student';
+  return data as AppRole;
     } catch (error) {
       console.error("Error in getUserRole:", error);
       return null;
     }
   },
 
-  // Check if user has a specific role via profiles.role
+  // Check if user has a specific role
   hasRole: async (userId: string, role: AppRole): Promise<boolean> => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: userId,
+        _role: role
+      });
 
       if (error) {
         console.error("Error checking role:", error);
         return false;
       }
 
-      return (data?.role as AppRole) === role;
+      return data as boolean;
     } catch (error) {
       console.error("Error in hasRole:", error);
       return false;
     }
   },
 
-  // Assign role to user (admin only) by updating profiles.role
+  // Assign role to user (admin only)
   assignRole: async (userId: string, role: AppRole): Promise<{ success: boolean; error: string | null }> => {
     try {
       const { error } = await supabase
-        .from('profiles')
-        .update({ role, updated_at: new Date().toISOString() })
-        .eq('id', userId);
+        .from('user_roles')
+        .insert({ user_id: userId, role });
 
       if (error) {
         return { success: false, error: error.message };
@@ -65,24 +60,19 @@ export const roleService = {
     }
   },
 
-  // Remove role from user (admin only) — set to 'student' by default
+  // Remove role from user (admin only)
   removeRole: async (userId: string, role: AppRole): Promise<{ success: boolean; error: string | null }> => {
     try {
-      // If removing the current role, downgrade to 'student'; otherwise, no-op
-      const { data } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
+      const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role', role);
 
-      const current = (data?.role as AppRole) || 'student';
-      if (current === role && role !== 'student') {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ role: 'student', updated_at: new Date().toISOString() })
-          .eq('id', userId);
-        if (error) return { success: false, error: error.message };
+      if (error) {
+        return { success: false, error: error.message };
       }
+
       return { success: true, error: null };
     } catch (error) {
       console.error("Error removing role:", error);

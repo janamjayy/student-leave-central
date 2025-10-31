@@ -231,9 +231,6 @@ const Navbar = () => {
       {/* Profile Modal */}
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
         <DialogContent className="max-w-[480px] w-[90vw] p-0 bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/60 shadow-2xl">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Profile</DialogTitle>
-          </DialogHeader>
           <div className="max-h-[90vh] overflow-hidden px-4 pb-4 pt-2">
             <Profile />
           </div>
