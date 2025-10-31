@@ -172,52 +172,6 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
   
   const isPending = leave.status === "pending";
   const studentName = leave.student ? leave.student.full_name : "Student";
-
-  // Helper: allow admin override only if decision was made today
-  const canOverrideToday = () => {
-    if (!profile || !roleHelpers.isAdmin(profile)) return false;
-    if (leave.status === 'pending') return false;
-    const ts = leave.status_decided_at || leave.updated_at;
-    if (!ts) return false;
-    const decided = new Date(ts);
-    const now = new Date();
-    return decided.getFullYear() === now.getFullYear() &&
-      decided.getMonth() === now.getMonth() &&
-      decided.getDate() === now.getDate();
-  };
-
-  // Override dialog state
-  const [overrideOpen, setOverrideOpen] = useState(false);
-  const [overrideStatus, setOverrideStatus] = useState<'approved' | 'rejected'>(leave.status === 'approved' ? 'rejected' : 'approved');
-  const [overrideComments, setOverrideComments] = useState('');
-  const [isOverriding, setIsOverriding] = useState(false);
-
-  const confirmOverride = async () => {
-    if (!user) {
-      toast.error('You must be logged in to perform this action');
-      return;
-    }
-    try {
-      setIsOverriding(true);
-      const { success, error } = await supabaseService.updateLeaveStatus(
-        leave.id,
-        overrideStatus,
-        user.id,
-        overrideComments,
-        undefined,
-        { overrideFrom: leave.status as any }
-      );
-      if (!success) throw new Error(error || 'Failed to override');
-      toast.success(`Decision changed to ${overrideStatus}`);
-      setOverrideOpen(false);
-      setOverrideComments('');
-      onStatusUpdate();
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to change decision');
-    } finally {
-      setIsOverriding(false);
-    }
-  };
   
   return (
     <Card className="w-full shadow mb-6 overflow-hidden border-l-4 border-l-blue-500">
@@ -356,18 +310,6 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
         </div>
       )}
 
-      {/* Admin same-day override */}
-      {!isPending && canOverrideToday() && (
-        <div className="w-full px-6 pb-5 flex justify-end">
-          <Button
-            variant="secondary"
-            onClick={() => { setOverrideStatus(leave.status === 'approved' ? 'rejected' : 'approved'); setOverrideOpen(true); }}
-          >
-            Change Decision
-          </Button>
-        </div>
-      )}
-
       {isPending && (
         <CardFooter className="bg-gray-50 border-t">
           <div className="flex gap-3 w-full">
@@ -441,37 +383,6 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
           </div>
         </CardFooter>
       )}
-
-      {/* Override dialog */}
-      <AlertDialog open={overrideOpen} onOpenChange={setOverrideOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Change decision</AlertDialogTitle>
-            <AlertDialogDescription>
-              Only admins can override a decision, and only on the same day it was made. Select the new status and add optional comments.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium">New status:</label>
-              <div className="flex gap-2">
-                <Button variant={overrideStatus==='approved' ? 'default' : 'outline'} size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => setOverrideStatus('approved')}>Approve</Button>
-                <Button variant={overrideStatus==='rejected' ? 'destructive' : 'outline'} size="sm" onClick={() => setOverrideStatus('rejected')}>Reject</Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="override-comments">Comments</label>
-              <Textarea id="override-comments" value={overrideComments} onChange={(e) => setOverrideComments(e.target.value)} placeholder="Why is this decision being changed?" />
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmOverride} disabled={isOverriding}>
-              {isOverriding ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply Change'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   );
 };
