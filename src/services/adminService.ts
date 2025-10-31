@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface AdminUser {
   id: string;
   email: string;
-  password: string;
+  password?: string;
   full_name: string;
   created_at: string;
   avatar_url?: string | null;
