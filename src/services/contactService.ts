@@ -6,9 +6,11 @@ export type ContactRequest = {
   email: string;
   institution: string;
   message: string;
-  status: 'new' | 'in_progress' | 'closed';
+  status: 'new' | 'in_progress' | 'accepted' | 'rejected' | 'closed';
   handled_by?: string | null;
   created_at: string;
+  decision_note?: string | null;
+  decision_at?: string | null;
 };
 
 export const contactService = {
@@ -47,11 +49,34 @@ export const contactService = {
     return rows;
   },
 
-  async updateStatus(id: string, status: ContactRequest['status']) {
+  async updateStatus(id: string, status: ContactRequest['status'], note?: string) {
+    const updates: any = { status };
+    if (typeof note !== 'undefined') {
+      updates.decision_note = note;
+      if (status === 'accepted' || status === 'rejected' || status === 'closed') {
+        updates.decision_at = new Date().toISOString();
+      }
+    }
     const { error } = await supabase
       .from('contact_requests' as any)
-      .update({ status })
+      .update(updates)
       .eq('id', id);
+    if (error) throw error;
+  },
+
+  async sendDecisionEmail(args: { to: string; name: string; decision: 'accepted' | 'rejected'; note?: string }) {
+    const subject = args.decision === 'accepted'
+      ? 'Your demo request has been accepted'
+      : 'Regarding your demo request';
+    const greeting = `Hi ${args.name},`;
+    const bodyAccepted = `Thanks for your interest in Student Leave Central. We'd love to give you a quick walkthrough. Let us know a suitable time.\n\n${args.note ? 'Note: ' + args.note + '\n\n' : ''}Regards,\nAdmin Team`;
+    const bodyRejected = `Thanks for your interest in Student Leave Central. At the moment, we won't be proceeding with a demo.\n\n${args.note ? 'Note: ' + args.note + '\n\n' : ''}Regards,\nAdmin Team`;
+    const text = `${greeting}\n\n${args.decision === 'accepted' ? bodyAccepted : bodyRejected}`;
+    const html = `<p>${greeting}</p><p>${(args.decision === 'accepted' ? bodyAccepted : bodyRejected).replace(/\n/g,'<br/>')}</p>`;
+    // Invoke Supabase Edge Function (send-email)
+    const { error } = await (supabase as any).functions.invoke('send-email', {
+      body: { to: args.to, subject, text, html },
+    });
     if (error) throw error;
   },
 };
