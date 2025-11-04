@@ -3,6 +3,7 @@ import Layout from '@/components/layout/Layout';
 import { contactService, ContactRequest } from '@/services/contactService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,12 +84,15 @@ const AdminContacts: React.FC = () => {
           decision: pendingDecision.action,
           note: decisionNote.trim() || undefined,
         });
+        toast.success('Email sent');
       } catch (_) { /* ignore email errors for now */ }
       await load();
       setDecisionOpen(false);
       setPendingDecision(null);
     } catch (e: any) {
-      setError(e?.message || 'Failed to update');
+      const msg = e?.message || 'Failed to update';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSavingDecision(false);
     }
@@ -128,15 +132,17 @@ const AdminContacts: React.FC = () => {
                   <th className="text-left px-4 py-3">Email</th>
                   <th className="text-left px-4 py-3">Institution</th>
                   <th className="text-left px-4 py-3">Message</th>
+                  <th className="text-left px-4 py-3">Decision note</th>
+                  <th className="text-left px-4 py-3">Decided at</th>
                   <th className="text-left px-4 py-3">Status</th>
                   <th className="text-left px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td className="px-4 py-6" colSpan={7}>Loading…</td></tr>
+                  <tr><td className="px-4 py-6" colSpan={9}>Loading…</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td className="px-4 py-6" colSpan={7}>No demo requests yet.</td></tr>
+                  <tr><td className="px-4 py-6" colSpan={9}>No demo requests yet.</td></tr>
                 ) : (
                   filtered.map(r => (
                     <tr key={r.id} className="border-t border-gray-100 dark:border-gray-700">
@@ -145,6 +151,8 @@ const AdminContacts: React.FC = () => {
                       <td className="px-4 py-3"><a className="text-indigo-600 underline" href={`mailto:${r.email}`}>{r.email}</a></td>
                       <td className="px-4 py-3">{r.institution}</td>
                       <td className="px-4 py-3 max-w-md whitespace-pre-wrap">{r.message}</td>
+                      <td className="px-4 py-3 max-w-md whitespace-pre-wrap text-slate-700 dark:text-slate-300">{r.decision_note || '—'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{r.decision_at ? new Date(r.decision_at).toLocaleString() : '—'}</td>
                       <td className="px-4 py-3"><StatusBadge status={r.status as any} /></td>
                       <td className="px-4 py-3 space-x-2">
                         <Button size="sm" variant="secondary" onClick={() => setStatus(r.id, 'in_progress' as any)} disabled={decidedStatuses.includes(r.status as any)}>In progress</Button>
