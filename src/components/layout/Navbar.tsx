@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, BookOpen, CalendarCheck, Users, Shield, BarChart3 } from "lucide-react";
+import { Menu, LogOut, User, BookOpen, CalendarCheck, Users, Shield, BarChart3, Mail } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "./ThemeToggle";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -64,6 +64,10 @@ const Navbar = () => {
                   <Link to="/admin/dashboard" className="text-sm font-medium transition-colors hover:text-foreground/80">
                     <Shield className="inline h-4 w-4 mr-1" />
                     Dashboard
+                  </Link>
+                  <Link to="/admin/contacts" className="text-sm font-medium transition-colors hover:text-foreground/80">
+                    <Mail className="inline h-4 w-4 mr-1" />
+                    Demo Requests
                   </Link>
                   
                   
@@ -177,6 +181,12 @@ const Navbar = () => {
                             <Link to="/admin/users" className="flex items-center py-2 font-medium transition-colors hover:text-foreground/80" onClick={() => setIsOpen(false)}>
                               <Users className="mr-2 h-5 w-5" />
                               User Management
+                            </Link>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Link to="/admin/contacts" className="flex items-center py-2 font-medium transition-colors hover:text-foreground/80" onClick={() => setIsOpen(false)}>
+                              <Mail className="mr-2 h-5 w-5" />
+                              Demo Requests
                             </Link>
                           </SheetClose>
                         </>}

@@ -26,6 +26,7 @@ import FacultyAnalytics from "./pages/faculty/Analytics";
 import FacultyMyAnalytics from "./pages/faculty/MyAnalytics";
 import FacultyReports from "./pages/faculty/Reports";
 import StudentDashboard from "./pages/student/Dashboard";
+import AdminContacts from "./pages/admin/Contacts";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import TestAuth from "./pages/TestAuth";
@@ -99,6 +100,7 @@ const App = () => (
                   <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                   <Route path="/admin/leaves" element={<AdminRoute><AdminLeaves /></AdminRoute>} />
                   <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+                  <Route path="/admin/contacts" element={<AdminRoute><AdminContacts /></AdminRoute>} />
                   {/* Protected Faculty Routes */}
                   <Route path="/faculty/dashboard" element={<FacultyRoute><FacultyDashboard /></FacultyRoute>} />
                   <Route path="/faculty/leaves" element={<FacultyRoute><FacultyLeaves /></FacultyRoute>} />

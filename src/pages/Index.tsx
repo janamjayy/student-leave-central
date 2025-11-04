@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ClipboardCheck, 
@@ -175,6 +176,7 @@ const Index: React.FC = () => {
   // State for active testimonial section
   const [activeTab, setActiveTab] = useState("students");
   const navigate = useNavigate();
+  const [featuresOpen, setFeaturesOpen] = useState(false);
 
   // Handlers for CTA buttons
   const handleRequestDemo = () => {
@@ -183,8 +185,8 @@ const Index: React.FC = () => {
   };
 
   const handleViewFeatures = () => {
-    // Navigate to dedicated features page instead of scrolling
-    navigate('/features');
+    // Open features modal instead of scrolling or navigating
+    setFeaturesOpen(true);
   };
   
   // Animation variants for smooth transitions
@@ -462,6 +464,41 @@ const Index: React.FC = () => {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* Features Modal */}
+      <Dialog open={featuresOpen} onOpenChange={setFeaturesOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Platform Features</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <FeatureCard 
+              icon={ClipboardCheck}
+              title="Smart Applications"
+              description="Submit leave requests with intelligent validation and templates."/>
+            <FeatureCard 
+              icon={Bell}
+              title="Instant Notifications"
+              description="Real-time alerts via email and mobile push notifications."/>
+            <FeatureCard 
+              icon={Shield}
+              title="Enterprise Security"
+              description="Bank-grade encryption and security protocols to protect data."/>
+            <FeatureCard 
+              icon={Users}
+              title="Role-Based Access"
+              description="Customized interfaces for students, faculty, and administrators."/>
+            <FeatureCard 
+              icon={Calendar}
+              title="Calendar Integration"
+              description="Sync with Google Calendar, Outlook, and more."/>
+            <FeatureCard 
+              icon={TrendingUp}
+              title="Analytics Dashboard"
+              description="Comprehensive reports and analytics to track trends."/>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Additional Benefits Section */}
       <section className="bg-gray-50 dark:bg-gray-900 py-16">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { contactService } from '@/services/contactService';
 
 const Contact: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +36,9 @@ const Contact: React.FC = () => {
     };
 
     try {
+      // 0) Persist to DB table for admin review
+      await contactService.submit({ name, email, institution, message });
+
       // 1) Optional webhook
       const webhook = import.meta.env.VITE_CONTACT_WEBHOOK_URL as string | undefined;
       if (webhook) {
