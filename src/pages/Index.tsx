@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ClipboardCheck, 
@@ -173,6 +174,18 @@ const StepItem: React.FC<StepItemProps> = ({ number, title, description }) => (
 const Index: React.FC = () => {
   // State for active testimonial section
   const [activeTab, setActiveTab] = useState("students");
+  const navigate = useNavigate();
+
+  // Handlers for CTA buttons
+  const handleRequestDemo = () => {
+    // Navigate to dedicated contact/demo request page
+    navigate('/contact');
+  };
+
+  const handleViewFeatures = () => {
+    // Navigate to dedicated features page instead of scrolling
+    navigate('/features');
+  };
   
   // Animation variants for smooth transitions
   const containerVariants = {
@@ -439,10 +452,10 @@ const Index: React.FC = () => {
               Implementation takes less than a week with no disruption to existing processes.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button className="px-8 py-3 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
+              <button onClick={handleRequestDemo} className="px-8 py-3 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
                 Request Demo
               </button>
-              <button className="px-8 py-3 bg-blue-800 bg-opacity-50 text-white font-semibold rounded-lg hover:bg-opacity-70 transition-colors">
+              <button onClick={handleViewFeatures} className="px-8 py-3 bg-blue-800 bg-opacity-50 text-white font-semibold rounded-lg hover:bg-opacity-70 transition-colors">
                 View Features
               </button>
             </div>

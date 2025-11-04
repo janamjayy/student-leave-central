@@ -31,6 +31,8 @@ import NotFound from "./pages/NotFound";
 import TestAuth from "./pages/TestAuth";
 import AdminRoute from "./components/common/AdminRoute";
 import Verify from "./pages/Verify";
+import Contact from "./pages/Contact";
+import Features from "./pages/Features";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +87,8 @@ const App = () => (
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/test-auth" element={<TestAuth />} />
                   <Route path="/verify" element={<Verify />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/features" element={<Features />} />
                   {/* Protected Student Routes */}
                   <Route path="/apply-leave" element={<StudentRoute><ApplyLeave /></StudentRoute>} />
                   <Route path="/student/dashboard" element={<StudentRoute><StudentDashboard /></StudentRoute>} />
