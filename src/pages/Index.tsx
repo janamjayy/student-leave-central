@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ClipboardCheck, 
@@ -175,19 +173,6 @@ const StepItem: React.FC<StepItemProps> = ({ number, title, description }) => (
 const Index: React.FC = () => {
   // State for active testimonial section
   const [activeTab, setActiveTab] = useState("students");
-  const navigate = useNavigate();
-  const [featuresOpen, setFeaturesOpen] = useState(false);
-
-  // Handlers for CTA buttons
-  const handleRequestDemo = () => {
-    // Navigate to dedicated contact/demo request page
-    navigate('/contact');
-  };
-
-  const handleViewFeatures = () => {
-    // Open features modal instead of scrolling or navigating
-    setFeaturesOpen(true);
-  };
   
   // Animation variants for smooth transitions
   const containerVariants = {
@@ -206,24 +191,24 @@ const Index: React.FC = () => {
     students: [
       {
         content: "This system has saved me so much time! I can apply for leave and track my requests anywhere, anytime.",
-        author: "Janam",
-        role: "MCA Student"
+        author: "Rahul Sharma",
+        role: "B.Tech Student"
       },
       {
         content: "The notifications feature is amazing! I get instant updates when my leave is approved.",
-        author: "Dhvani Patel",
-        role: "BCA Student"
+        author: "Priya Patel",
+        role: "MBA Student"
       }
     ],
     administrators: [
       {
         content: "Managing student leaves has never been easier. The dashboard gives me all the information I need at a glance.",
-        author: "Hardik Kasliwal",
+        author: "Dr. Amit Singh",
         role: "Department Head"
       },
       {
         content: "The reporting feature allows me to track attendance patterns and make informed decisions.",
-        author: "Arvind Padyachi",
+        author: "Prof. Meera Joshi",
         role: "Student Coordinator"
       }
     ]
@@ -454,51 +439,16 @@ const Index: React.FC = () => {
               Implementation takes less than a week with no disruption to existing processes.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button onClick={handleRequestDemo} className="px-8 py-3 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
+              <button className="px-8 py-3 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
                 Request Demo
               </button>
-              <button onClick={handleViewFeatures} className="px-8 py-3 bg-blue-800 bg-opacity-50 text-white font-semibold rounded-lg hover:bg-opacity-70 transition-colors">
+              <button className="px-8 py-3 bg-blue-800 bg-opacity-50 text-white font-semibold rounded-lg hover:bg-opacity-70 transition-colors">
                 View Features
               </button>
             </div>
           </motion.div>
         </motion.div>
       </section>
-
-      {/* Features Modal */}
-      <Dialog open={featuresOpen} onOpenChange={setFeaturesOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Platform Features</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard 
-              icon={ClipboardCheck}
-              title="Smart Applications"
-              description="Submit leave requests with intelligent validation and templates."/>
-            <FeatureCard 
-              icon={Bell}
-              title="Instant Notifications"
-              description="Real-time alerts via email and mobile push notifications."/>
-            <FeatureCard 
-              icon={Shield}
-              title="Enterprise Security"
-              description="Bank-grade encryption and security protocols to protect data."/>
-            <FeatureCard 
-              icon={Users}
-              title="Role-Based Access"
-              description="Customized interfaces for students, faculty, and administrators."/>
-            <FeatureCard 
-              icon={Calendar}
-              title="Calendar Integration"
-              description="Sync with Google Calendar, Outlook, and more."/>
-            <FeatureCard 
-              icon={TrendingUp}
-              title="Analytics Dashboard"
-              description="Comprehensive reports and analytics to track trends."/>
-          </div>
-        </DialogContent>
-      </Dialog>
       
       {/* Additional Benefits Section */}
       <section className="bg-gray-50 dark:bg-gray-900 py-16">

@@ -15,7 +15,7 @@ interface AuthContextType {
   userRole: AppRole | null;
   loading: boolean;
   login: (email: string, password: string, expectedRole?: AppRole) => Promise<void>;
-  signup: (name: string, email: string, password: string, avatarFile?: File | null) => Promise<void>;
+  signup: (name: string, email: string, password: string, studentId: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   isAdmin: () => boolean;
@@ -163,32 +163,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signup = async (name: string, email: string, password: string, avatarFile?: File | null) => {
+  const signup = async (name: string, email: string, password: string, studentId: string) => {
     try {
       setLoading(true);
-      // Generate a unique Student ID automatically for new students
-      const genId = () => {
-        const d = new Date();
-        const yy = d.getFullYear().toString().slice(-2);
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-        return `S${yy}${mm}-${rand}`; // e.g., S2509-ABCD
-      };
-
-      const generateUniqueStudentId = async (): Promise<string> => {
-        for (let i = 0; i < 5; i++) {
-          const candidate = genId();
-          const { data } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('student_id', candidate)
-            .maybeSingle();
-          if (!data) return candidate;
-        }
-        return `S${Date.now()}`; // ultra-rare fallback
-      };
-
-      const studentId = await generateUniqueStudentId();
       const { user: authUser, error } = await supabaseService.signUp(email, password, name, studentId);
       
       if (error) {
@@ -197,16 +174,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (authUser) {
-        // Ensure profile has base fields even if no avatar is uploaded
-        await supabaseService.updateProfile(authUser.id, { full_name: name, student_id: studentId });
-
-        // If avatar provided, upload and update profile
-        if (avatarFile) {
-          const { url, error: upErr } = await supabaseService.uploadProfileAvatar(avatarFile, authUser.id);
-          if (!upErr && url) {
-            await supabaseService.updateProfile(authUser.id, { avatar_url: url, full_name: name, student_id: studentId });
-          }
-        }
         toast.success('Account created successfully');
       }
     } catch (error) {

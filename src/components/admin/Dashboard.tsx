@@ -9,14 +9,12 @@ import LeaveManagement from "./LeaveManagement";
 import FacultyLeaveManagement from "./FacultyLeaveManagement";
 import ReportsAnalytics from "./ReportsAnalytics";
 import AuditLogs from "./AuditLogs";
-import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 const AdminDashboard = () => {
-  const { stats, loading, refreshData, audience, setAudience } = useAdminDashboard();
+  const { stats, loading, refreshData } = useAdminDashboard();
 
   return (
-  <ErrorBoundary onReset={refreshData}>
-  <div className="space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Admin Dashboard</h2>
@@ -62,7 +60,7 @@ const AdminDashboard = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <DashboardCharts stats={stats} loading={loading} audience={audience} setAudience={setAudience} />
+          <DashboardCharts stats={stats} loading={loading} />
           <ReportsAnalytics />
         </TabsContent>
 
@@ -83,7 +81,6 @@ const AdminDashboard = () => {
         </TabsContent>
       </Tabs>
     </div>
-    </ErrorBoundary>
   );
 };
 

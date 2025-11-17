@@ -38,45 +38,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ,
-      audit_logs: {
-        Row: {
-          id: string
-          user_id: string | null
-          action: string
-          entity_type: string
-          entity_id: string | null
-          details: Json | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          action: string
-          entity_type: string
-          entity_id?: string | null
-          details?: Json | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          action?: string
-          entity_type?: string
-          entity_id?: string | null
-          details?: Json | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "audit_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       leave_applications: {
         Row: {
           applied_on: string
@@ -142,79 +103,6 @@ export type Database = {
           {
             foreignKeyName: "leave_applications_reviewed_by_fkey"
             columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ,
-      faculty_leave_applications: {
-        Row: {
-          id: string
-          faculty_id: string
-          leave_type: string
-          reason: string
-          start_date: string
-          end_date: string
-          is_emergency: boolean | null
-          attachment_url: string | null
-          status: Database["public"]["Enums"]["leave_status"] | null
-          admin_remarks: string | null
-          reviewed_by: string | null
-          applied_on: string
-          updated_at: string
-          faculty_name: string | null
-          faculty_email: string | null
-          approved_by_name: string | null
-        }
-        Insert: {
-          id?: string
-          faculty_id: string
-          leave_type: string
-          reason: string
-          start_date: string
-          end_date: string
-          is_emergency?: boolean | null
-          attachment_url?: string | null
-          status?: Database["public"]["Enums"]["leave_status"] | null
-          admin_remarks?: string | null
-          reviewed_by?: string | null
-          applied_on?: string
-          updated_at?: string
-          faculty_name?: string | null
-          faculty_email?: string | null
-          approved_by_name?: string | null
-        }
-        Update: {
-          id?: string
-          faculty_id?: string
-          leave_type?: string
-          reason?: string
-          start_date?: string
-          end_date?: string
-          is_emergency?: boolean | null
-          attachment_url?: string | null
-          status?: Database["public"]["Enums"]["leave_status"] | null
-          admin_remarks?: string | null
-          reviewed_by?: string | null
-          applied_on?: string
-          updated_at?: string
-          faculty_name?: string | null
-          faculty_email?: string | null
-          approved_by_name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "faculty_leave_applications_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "faculty_leave_applications_faculty_id_fkey"
-            columns: ["faculty_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -340,33 +228,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ,
-      user_roles: {
-        Row: {
-          user_id: string
-          role: Database["public"]["Enums"]["user_role"]
-          created_at: string | null
-        }
-        Insert: {
-          user_id: string
-          role: Database["public"]["Enums"]["user_role"]
-          created_at?: string | null
-        }
-        Update: {
-          user_id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -375,14 +236,6 @@ export type Database = {
       get_unread_notification_count: {
         Args: { user_id: string }
         Returns: number
-      },
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["user_role"] | null
-      },
-      has_role: {
-        Args: { _user_id: string; _role: Database["public"]["Enums"]["user_role"] }
-        Returns: boolean
       }
     }
     Enums: {

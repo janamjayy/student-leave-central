@@ -1,9 +1,5 @@
 
-import { Calendar, Loader2, ThumbsUp, ThumbsDown, Paperclip, Download } from "lucide-react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import LeavePdfTemplate from "@/components/admin/LeavePdfTemplate";
-import { createRoot } from "react-dom/client";
+import { Calendar, Loader2, ThumbsUp, ThumbsDown, Paperclip } from "lucide-react";
 import { LeaveApplication } from "@/services/supabaseService";
 import {
   Table,
@@ -16,7 +12,6 @@ import {
 } from "@/components/ui/table";
 import LeaveStatusBadge from "./LeaveStatusBadge";
 import { useAuth } from "@/context/AuthContext";
-import { useAdmin } from "@/context/AdminContext";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,9 +38,8 @@ interface LeavesTableProps {
 
 const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
   const { isAdmin, isFaculty, user } = useAuth();
-  const { isAdminAuthenticated, admin } = useAdmin();
-  const showStudentInfo = isAdmin() || isFaculty() || isAdminAuthenticated;
-  const canAct = isAdmin() || isFaculty() || isAdminAuthenticated;
+  const showStudentInfo = isAdmin() || isFaculty();
+  const canAct = isAdmin() || isFaculty();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [reviewers, setReviewers] = useState<Record<string, { full_name: string; email: string; role: string }>>({});
 
@@ -62,10 +56,13 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
     leave: LeaveApplication,
     status: "approved" | "rejected"
   ) => {
-    // Admins via AdminContext are allowed even without Supabase user
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
 
     // If faculty, collect remarks first
-  if (isFaculty() && user) {
+    if (isFaculty()) {
       setPendingAction({ leave, status });
       setRemarks("");
       setFlagInvalidReason(false);
@@ -76,13 +73,10 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
     // Admin path: proceed immediately (no remarks required)
     try {
       setUpdatingId(leave.id);
-      const approverName = (isAdminAuthenticated && admin?.full_name) ? admin.full_name : undefined;
       const { success, error } = await supabaseService.updateLeaveStatus(
         leave.id,
         status,
-        user?.id || null,
-        undefined,
-        approverName
+        user.id
       );
       if (!success) throw new Error(error || "Failed to update status");
       toast.success(`Leave ${status}`);
@@ -152,82 +146,11 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
     return () => { ignore = true; };
   }, [reviewerIds]);
 
-  const downloadStudentPdf = async (leave: LeaveApplication) => {
-    try {
-      // Build approver display similar to LeaveReview
-      const approverId = leave.reviewed_by || '';
-      let approverName = approverId && reviewers[approverId]?.full_name ? reviewers[approverId].full_name : '';
-      if (approverId && !approverName) {
-        // Force-resolve on demand
-        try {
-          const map = await supabaseService.getProfilesByIds([approverId]);
-          approverName = map[approverId]?.full_name || '';
-        } catch (_) {}
-      }
-      if (!approverName && isAdminAuthenticated && admin?.full_name) {
-        approverName = admin.full_name;
-      }
-      const approver = { name: approverName, id: '', role: '' };
-
-      // Applicant details for PDF header (real-time where possible)
-      const applicant = {
-        name: leave.student_name || leave.student?.full_name || '—',
-        role: 'Student',
-        id: leave.student?.student_id || leave.student_id || null
-      };
-
-      // Create offscreen container and a known wrapper
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-10000px';
-      container.style.top = '0';
-      container.style.width = '210mm';
-      document.body.appendChild(container);
-
-      const wrapper = document.createElement('div');
-      wrapper.id = 'student-pdf-wrapper';
-      container.appendChild(wrapper);
-
-      const root = createRoot(wrapper);
-      const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-  root.render(<LeavePdfTemplate leave={leave} approver={approver} applicant={applicant} mode={mode} />);
-
-  // Ensure QR and fonts render before capture
-  await new Promise(res => setTimeout(res, 200));
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-      const target = wrapper as HTMLDivElement;
-      if (!target) throw new Error('PDF container not found');
-
-      const canvas = await html2canvas(target, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: mode === 'dark' ? '#18181b' : '#ffffff',
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageWidth = 210; const pageHeight = 297;
-      const props = pdf.getImageProperties(imgData);
-      let pdfWidth = pageWidth; let pdfHeight = (props.height * pdfWidth) / props.width;
-      if (pdfHeight > pageHeight) { pdfHeight = pageHeight; pdfWidth = (props.width * pdfHeight) / props.height; }
-      pdf.addImage(imgData, 'PNG', (pageWidth - pdfWidth) / 2, 10, pdfWidth, pdfHeight);
-
-  const name = leave.student_name || leave.student?.full_name || 'student';
-      pdf.save(`student_leave_${name}_${leave.id}.pdf`);
-
-      // Cleanup
-      root.unmount();
-      document.body.removeChild(container);
-    } catch (e) {
-      console.error('PDF generation failed', e);
-    }
-  };
-
   return (
     <>
     <div className="border rounded-md overflow-hidden">
       <Table>
-        
+        <TableCaption>List of leave applications</TableCaption>
         <TableHeader>
           <TableRow>
             {showStudentInfo && <TableHead>Student</TableHead>}
@@ -284,17 +207,6 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
                   {leave.reviewed_by && reviewers[leave.reviewed_by] && (
                     <span className="text-xs text-muted-foreground">by {reviewers[leave.reviewed_by].full_name}</span>
                   )}
-                  {/* For students (no admin actions), offer download here when not pending */}
-                  {leave.status !== 'pending' && !canAct && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadStudentPdf(leave)}
-                      title="Download PDF"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               </TableCell>
               {canAct && (
@@ -331,16 +243,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => downloadStudentPdf(leave)}
-                        title="Download PDF"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <span className="text-xs text-muted-foreground">No actions</span>
                   )}
                 </TableCell>
               )}
@@ -364,7 +267,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
             <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Provide brief context for your decision" />
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="invalid-reason" checked={flagInvalidReason} onCheckedChange={(v) => setFlagInvalidReason(v === true)} />
+            <Checkbox id="invalid-reason" checked={flagInvalidReason} onCheckedChange={(v: any) => setFlagInvalidReason(!!v)} />
             <Label htmlFor="invalid-reason">Flag reason as potentially invalid</Label>
           </div>
         </div>
