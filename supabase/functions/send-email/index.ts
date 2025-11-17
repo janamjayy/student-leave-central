@@ -40,6 +40,7 @@ serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ ok: true, data }), { status: 200 });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e?.message || 'Unexpected error' }), { status: 500 });
+    const errorMessage = e instanceof Error ? e.message : 'Unexpected error';
+    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
   }
 });
