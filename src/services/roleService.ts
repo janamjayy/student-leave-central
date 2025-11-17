@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = 'student' | 'faculty' | 'admin';
+export type AppRole = 'student' | 'faculty' | 'superadmin';
 
 export const roleService = {
   // Get user's role from user_roles table
