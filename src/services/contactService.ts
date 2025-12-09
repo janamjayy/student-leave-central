@@ -53,9 +53,9 @@ export const contactService = {
     const updates: any = { status };
     if (typeof note !== 'undefined') {
       updates.decision_note = note;
-      if (status === 'accepted' || status === 'rejected' || status === 'closed') {
-        updates.decision_at = new Date().toISOString();
-      }
+    }
+    if (status === 'accepted' || status === 'rejected' || status === 'closed') {
+      updates.decision_at = new Date().toISOString();
     }
     const { error } = await supabase
       .from('contact_requests' as any)

@@ -65,7 +65,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
     // Admins via AdminContext are allowed even without Supabase user
 
     // If faculty, collect remarks first
-  if (isFaculty() && user) {
+    if (isFaculty() && user) {
       setPendingAction({ leave, status });
       setRemarks("");
       setFlagInvalidReason(false);
@@ -162,7 +162,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
         try {
           const map = await supabaseService.getProfilesByIds([approverId]);
           approverName = map[approverId]?.full_name || '';
-        } catch (_) {}
+        } catch (_) { }
       }
       if (!approverName && isAdminAuthenticated && admin?.full_name) {
         approverName = admin.full_name;
@@ -190,11 +190,11 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
 
       const root = createRoot(wrapper);
       const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-  root.render(<LeavePdfTemplate leave={leave} approver={approver} applicant={applicant} mode={mode} />);
+      root.render(<LeavePdfTemplate leave={leave} approver={approver} applicant={applicant} mode={mode} />);
 
-  // Ensure QR and fonts render before capture
-  await new Promise(res => setTimeout(res, 200));
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      // Ensure QR and fonts render before capture
+      await new Promise(res => setTimeout(res, 200));
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
       const target = wrapper as HTMLDivElement;
       if (!target) throw new Error('PDF container not found');
@@ -212,7 +212,7 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
       if (pdfHeight > pageHeight) { pdfHeight = pageHeight; pdfWidth = (props.width * pdfHeight) / props.height; }
       pdf.addImage(imgData, 'PNG', (pageWidth - pdfWidth) / 2, 10, pdfWidth, pdfHeight);
 
-  const name = leave.student_name || leave.student?.full_name || 'student';
+      const name = leave.student_name || leave.student?.full_name || 'student';
       pdf.save(`student_leave_${name}_${leave.id}.pdf`);
 
       // Cleanup
@@ -225,113 +225,67 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
 
   return (
     <>
-    <div className="border rounded-md overflow-hidden">
-      <Table>
-        
-        <TableHeader>
-          <TableRow>
-            {showStudentInfo && <TableHead>Student</TableHead>}
-            <TableHead>Type</TableHead>
-            <TableHead>From</TableHead>
-            <TableHead>To</TableHead>
-            <TableHead>Attachment</TableHead>
-            <TableHead>Application Date</TableHead>
-            <TableHead>Status</TableHead>
-            {canAct && <TableHead className="text-right">Actions</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {leaves.map((leave) => (
-            <TableRow key={leave.id} className="hover:bg-muted/50">
-              {showStudentInfo && (
-                <TableCell className="font-medium">
-                  {/* Prefer denormalized applicant name captured at submission time */}
-                  {leave.student_name || leave.student?.full_name || "Unknown"}
-                  {(leave.student?.student_id || leave.student_id) && (
-                    <div className="text-xs text-muted-foreground">
-                      {leave.student?.student_id || leave.student_id}
-                    </div>
+      <div className="border rounded-md overflow-hidden">
+        <Table>
+
+          <TableHeader>
+            <TableRow>
+              {showStudentInfo && <TableHead>Student</TableHead>}
+              <TableHead>Type</TableHead>
+              <TableHead>From</TableHead>
+              <TableHead>To</TableHead>
+              <TableHead>Attachment</TableHead>
+              <TableHead>Application Date</TableHead>
+              <TableHead>Status</TableHead>
+              {canAct && <TableHead className="text-right">Actions</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {leaves.map((leave) => (
+              <TableRow key={leave.id} className="hover:bg-muted/50">
+                {showStudentInfo && (
+                  <TableCell className="font-medium">
+                    {/* Prefer denormalized applicant name captured at submission time */}
+                    {leave.student_name || leave.student?.full_name || "Unknown"}
+                    {(leave.student?.student_id || leave.student_id) && (
+                      <div className="text-xs text-muted-foreground">
+                        {leave.student?.student_id || leave.student_id}
+                      </div>
+                    )}
+                  </TableCell>
+                )}
+                <TableCell className="font-medium">{leave.leave_type}</TableCell>
+                <TableCell>{formatDate(leave.start_date)}</TableCell>
+                <TableCell>{formatDate(leave.end_date)}</TableCell>
+                <TableCell>
+                  {leave.attachment_url ? (
+                    <a
+                      href={leave.attachment_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                      title="View attachment"
+                    >
+                      <Paperclip className="h-4 w-4" /> View
+                    </a>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
-              )}
-              <TableCell className="font-medium">{leave.leave_type}</TableCell>
-              <TableCell>{formatDate(leave.start_date)}</TableCell>
-              <TableCell>{formatDate(leave.end_date)}</TableCell>
-              <TableCell>
-                {leave.attachment_url ? (
-                  <a
-                    href={leave.attachment_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                    title="View attachment"
-                  >
-                    <Paperclip className="h-4 w-4" /> View
-                  </a>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  <span>{formatDate(leave.applied_on)}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <LeaveStatusBadge status={leave.status} />
-                  {leave.reviewed_by && reviewers[leave.reviewed_by] && (
-                    <span className="text-xs text-muted-foreground">by {reviewers[leave.reviewed_by].full_name}</span>
-                  )}
-                  {/* For students (no admin actions), offer download here when not pending */}
-                  {leave.status !== 'pending' && !canAct && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadStudentPdf(leave)}
-                      title="Download PDF"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </TableCell>
-              {canAct && (
-                <TableCell className="text-right">
-                  {leave.status === "pending" ? (
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={updatingId === leave.id}
-                        onClick={() => handleUpdate(leave, "rejected")}
-                        className="text-red-600"
-                        title="Reject"
-                      >
-                        {updatingId === leave.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <ThumbsDown className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        disabled={updatingId === leave.id}
-                        onClick={() => handleUpdate(leave, "approved")}
-                        className="bg-green-600 hover:bg-green-700"
-                        title="Approve"
-                      >
-                        {updatingId === leave.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <ThumbsUp className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-end gap-2">
+                <TableCell className="text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>{formatDate(leave.applied_on)}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <LeaveStatusBadge status={leave.status} />
+                    {leave.reviewed_by && reviewers[leave.reviewed_by] && (
+                      <span className="text-xs text-muted-foreground">by {reviewers[leave.reviewed_by].full_name}</span>
+                    )}
+                    {/* For students (no admin actions), offer download here when not pending */}
+                    {leave.status !== 'pending' && !canAct && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -340,42 +294,109 @@ const LeavesTable = ({ leaves, formatDate, onUpdated }: LeavesTableProps) => {
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </TableCell>
-              )}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-  </div>
-  {/* Faculty remarks modal */}
-    <AlertDialog open={remarksOpen} onOpenChange={setRemarksOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Add remarks before submitting</AlertDialogTitle>
-          <AlertDialogDescription>
-            Your remarks will be saved with this decision and visible in reports.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="space-y-3 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="remarks">Remarks</Label>
-            <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Provide brief context for your decision" />
+
+                {canAct && (
+                  <TableCell className="text-right">
+                    {/* Admin Override: Show actions if pending OR if admin wants to change decision */}
+                    {(leave.status === "pending" || isAdminAuthenticated || isAdmin()) ? (
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Show Reject if not already rejected OR if admin wants to switch from approved to rejected */}
+                        {(leave.status !== "rejected" || (isAdminAuthenticated || isAdmin())) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={updatingId === leave.id || (leave.status === "rejected" && !isAdminAuthenticated && !isAdmin())}
+                            onClick={() => handleUpdate(leave, "rejected")}
+                            className={`text-red-600 ${leave.status === "rejected" ? "opacity-50" : ""}`}
+                            title="Reject"
+                          >
+                            {updatingId === leave.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ThumbsDown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+
+                        {/* Show Approve if not already approved OR if admin wants to switch from rejected to approved */}
+                        {(leave.status !== "approved" || (isAdminAuthenticated || isAdmin())) && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            disabled={updatingId === leave.id || (leave.status === "approved" && !isAdminAuthenticated && !isAdmin())}
+                            onClick={() => handleUpdate(leave, "approved")}
+                            className={`bg-green-600 hover:bg-green-700 ${leave.status === "approved" ? "opacity-50" : ""}`}
+                            title="Approve"
+                          >
+                            {updatingId === leave.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ThumbsUp className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+
+                        {/* Download button always available for non-pending */}
+                        {leave.status !== "pending" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadStudentPdf(leave)}
+                            title="Download PDF"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => downloadStudentPdf(leave)}
+                          title="Download PDF"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {/* Faculty remarks modal */}
+      <AlertDialog open={remarksOpen} onOpenChange={setRemarksOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add remarks before submitting</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your remarks will be saved with this decision and visible in reports.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="remarks">Remarks</Label>
+              <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Provide brief context for your decision" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="invalid-reason" checked={flagInvalidReason} onCheckedChange={(v) => setFlagInvalidReason(v === true)} />
+              <Label htmlFor="invalid-reason">Flag reason as potentially invalid</Label>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="invalid-reason" checked={flagInvalidReason} onCheckedChange={(v) => setFlagInvalidReason(v === true)} />
-            <Label htmlFor="invalid-reason">Flag reason as potentially invalid</Label>
-          </div>
-        </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setPendingAction(null)}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmWithRemarks}>
-            {pendingAction?.status === "approved" ? "Approve" : "Reject"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingAction(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmWithRemarks}>
+              {pendingAction?.status === "approved" ? "Approve" : "Reject"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

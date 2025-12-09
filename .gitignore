@@ -1,3 +1,64 @@
+# Node / Bun
+node_modules/
+bun.lockb
+
+# Build outputs
+/dist/
+/.vite/
+/.cache/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Env files (keep templates tracked separately)
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Vite
+vite-env.d.ts
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Tests and coverage
+coverage/
+
+# Supabase
+supabase/.temp/
+supabase/.cache/
+.supabase/
+
+# Local data
+*.sqlite
+*.db
+
+# Misc
+*.pid
+*.seed
+
+# Tailwind/JIT cache
+**/.tailwindcss-cache/
+
+# Generated assets
+public/*
+# Keep static files that are committed
+!public/robots.txt
+
+# Temporary files
+~$*
+*.swp
+*.swo
+
 # Logs
 logs
 *.log

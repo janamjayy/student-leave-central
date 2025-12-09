@@ -78,7 +78,7 @@ export const RoleBasedLogin = () => {
           navigate('/faculty/dashboard');
           break;
         case 'student':
-          navigate('/my-leaves');
+          navigate('/student/dashboard');
           break;
       }
     } catch (err: any) {
@@ -93,16 +93,16 @@ export const RoleBasedLogin = () => {
       {/* Animated background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-60">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-blue-300/30 to-indigo-300/20 dark:from-blue-600/20 dark:to-indigo-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-purple-300/30 to-pink-300/20 dark:from-purple-600/20 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-purple-300/30 to-pink-300/20 dark:from-purple-600/20 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       {/* Header removed as requested */}
 
       {/* Main Content */}
-  <main className="flex items-center justify-center flex-1 px-4 relative z-10">
+      <main className="flex items-center justify-center flex-1 px-4 relative z-10">
         <div className="w-full max-w-md">
           <div className="bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700/50">
-            
+
             {/* Logo and Title */}
             <div className="mb-6 text-center">
               <h1 className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
@@ -195,9 +195,9 @@ export const RoleBasedLogin = () => {
               </div>
 
               <div className="text-center pt-1">
-                <button 
-                  type="button" 
-                  onClick={() => navigate('/signup')} 
+                <button
+                  type="button"
+                  onClick={() => navigate('/signup')}
                   className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200"
                 >
                   Don't have an account? <span className="underline">Sign up here</span>

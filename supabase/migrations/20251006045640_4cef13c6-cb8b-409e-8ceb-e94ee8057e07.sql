@@ -2,6 +2,8 @@
 DROP POLICY IF EXISTS "Students can view their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Service role can insert profiles" ON public.profiles;
 
 -- Create comprehensive RLS policies for profiles table
 CREATE POLICY "Users can view their own profile"

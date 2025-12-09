@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ClipboardCheck, 
-  Shield, 
-  BookOpen, 
-  Clock, 
-  Calendar, 
-  Bell, 
-  User, 
+import {
+  ClipboardCheck,
+  Shield,
+  BookOpen,
+  Clock,
+  Calendar,
+  Bell,
+  User,
   CheckCircle,
   Award,
   TrendingUp,
@@ -35,18 +35,18 @@ const Counter: React.FC<CounterProps> = ({ end, label, duration = 2, delay = 0 }
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
-    
+
     if (count < end) {
       timeout = setTimeout(() => {
         setCount(prev => Math.min(prev + increment, end));
       }, 1000 / 60);
     }
-    
+
     return () => clearTimeout(timeout);
   }, [count, end, increment]);
 
   return (
-    <motion.div 
+    <motion.div
       className="text-center"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -73,7 +73,7 @@ interface TestimonialCardProps {
 }
 
 const TestimonialCard: React.FC<TestimonialCardProps> = ({ content, author, role, index }) => (
-  <motion.div 
+  <motion.div
     className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700"
     initial={{ opacity: 0, y: 50 }}
     animate={{ opacity: 1, y: 0 }}
@@ -104,13 +104,13 @@ interface FeatureCardProps {
   delay?: number;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ 
-  icon: Icon, 
-  title, 
+const FeatureCard: React.FC<FeatureCardProps> = ({
+  icon: Icon,
+  title,
   description,
   delay = 0
 }) => (
-  <motion.div 
+  <motion.div
     className="group relative flex flex-col items-center text-center p-6 
       bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl 
       transition-all duration-300 transform hover:-translate-y-2 hover:bg-blue-50 dark:hover:bg-gray-700
@@ -121,19 +121,19 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
     transition={{ duration: 0.5, delay }}
   >
     {/* Animated Icon with Gradient Background */}
-    <motion.div 
+    <motion.div
       className="mb-4 p-4 rounded-full bg-gradient-to-br 
         from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-900"
       whileHover={{ rotate: 15 }}
     >
       <Icon className="h-8 w-8 text-blue-600 dark:text-blue-300" />
     </motion.div>
-    
+
     {/* Feature Title */}
     <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-3">
       {title}
     </h3>
-    
+
     {/* Feature Description */}
     <p className="text-sm text-gray-600 dark:text-gray-400">
       {description}
@@ -151,7 +151,7 @@ interface StepItemProps {
 }
 
 const StepItem: React.FC<StepItemProps> = ({ number, title, description }) => (
-  <motion.div 
+  <motion.div
     className="flex items-start space-x-4"
     initial={{ opacity: 0, x: -50 }}
     animate={{ opacity: 1, x: 0 }}
@@ -188,7 +188,7 @@ const Index: React.FC = () => {
     // Open features modal instead of scrolling or navigating
     setFeaturesOpen(true);
   };
-  
+
   // Animation variants for smooth transitions
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -236,11 +236,11 @@ const Index: React.FC = () => {
         bg-gradient-to-br from-blue-50 via-white to-blue-100 
         dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 
         px-4 pt-16 pb-12 overflow-hidden relative">
-        
+
         {/* Background Decoration Elements */}
-        <motion.div 
+        <motion.div
           className="absolute top-20 right-10 w-64 h-64 rounded-full bg-blue-100 dark:bg-blue-900/20 blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
@@ -250,9 +250,9 @@ const Index: React.FC = () => {
             ease: "easeInOut"
           }}
         />
-        <motion.div 
+        <motion.div
           className="absolute bottom-40 left-10 w-80 h-80 rounded-full bg-indigo-100 dark:bg-indigo-900/20 blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.3, 1],
             opacity: [0.2, 0.4, 0.2]
           }}
@@ -263,9 +263,9 @@ const Index: React.FC = () => {
             delay: 2
           }}
         />
-        
+
         {/* Main Content Container */}
-        <motion.div 
+        <motion.div
           className="max-w-7xl w-full mx-auto relative z-10"
           initial="hidden"
           animate="visible"
@@ -273,7 +273,7 @@ const Index: React.FC = () => {
         >
           {/* Hero Content */}
           <div className="text-center mb-16">
-            <motion.h1 
+            <motion.h1
               className="text-4xl md:text-6xl lg:text-7xl font-extrabold 
                 text-gray-900 dark:text-white mb-6 leading-tight tracking-tight
                 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600
@@ -282,22 +282,22 @@ const Index: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              Streamline Student Leave Management
+              Leave Management System
             </motion.h1>
-            
-            <motion.p 
+
+            <motion.p
               className="text-lg md:text-xl text-gray-600 dark:text-gray-300 
                 max-w-3xl mx-auto mb-10"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              Simplify leave applications, track requests, and manage approvals with our 
+              Simplify leave applications, track requests, and manage approvals with our
               comprehensive digital solution designed for modern educational institutions.
             </motion.p>
-            
+
             {/* Stats Counter Row */}
-            <motion.div 
+            <motion.div
               className="flex justify-center space-x-8 md:space-x-16 mb-12"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -308,47 +308,47 @@ const Index: React.FC = () => {
               <Counter end={98} label="Approval Rate %" delay={0.6} />
             </motion.div>
           </div>
-          
+
           {/* Features Section with 3x2 Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-16">
-            <FeatureCard 
+            <FeatureCard
               icon={ClipboardCheck}
               title="Smart Applications"
               description="Submit leave requests with just a few clicks, with intelligent form validation and templates."
               delay={0.2}
             />
-            <FeatureCard 
+            <FeatureCard
               icon={Bell}
               title="Instant Notifications"
               description="Get real-time alerts about application status changes via email and mobile push notifications."
               delay={0.3}
             />
-            <FeatureCard 
+            <FeatureCard
               icon={Shield}
               title="Enterprise Security"
               description="Bank-grade encryption and security protocols to protect all student and institutional data."
               delay={0.4}
             />
-            <FeatureCard 
+            <FeatureCard
               icon={Users}
               title="Role-Based Access"
               description="Customized interfaces for students, faculty, and administrators with appropriate permissions."
               delay={0.5}
             />
-            <FeatureCard 
+            <FeatureCard
               icon={Calendar}
               title="Calendar Integration"
               description="Sync with Google Calendar, Outlook, and other calendar services for better planning."
               delay={0.6}
             />
-            <FeatureCard 
+            <FeatureCard
               icon={TrendingUp}
               title="Analytics Dashboard"
               description="Comprehensive reports and analytics to track trends and optimize institutional policies."
               delay={0.7}
             />
           </div>
-          
+
           {/* How It Works Section */}
           <motion.div
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-16"
@@ -359,26 +359,26 @@ const Index: React.FC = () => {
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
               How Student Leave Management Works
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <StepItem 
+              <StepItem
                 number={1}
                 title="Submit Application"
                 description="Students fill a simple digital form with leave details and supporting documents if needed."
               />
-              <StepItem 
+              <StepItem
                 number={2}
                 title="Automated Processing"
                 description="The system routes applications to appropriate administrators based on leave type and duration."
               />
-              <StepItem 
+              <StepItem
                 number={3}
                 title="Real-time Updates"
                 description="Both students and administrators receive notifications about application status changes."
               />
             </div>
           </motion.div>
-          
+
           {/* Testimonials Section with Tabs */}
           <motion.div
             className="mb-16"
@@ -389,14 +389,14 @@ const Index: React.FC = () => {
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
               What Our Users Say
             </h2>
-            
+
             <div className="flex justify-center mb-8">
               <div className="inline-flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
                 <button
                   className={cn(
                     "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                    activeTab === "students" 
-                      ? "bg-blue-600 text-white" 
+                    activeTab === "students"
+                      ? "bg-blue-600 text-white"
                       : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   )}
                   onClick={() => setActiveTab("students")}
@@ -406,8 +406,8 @@ const Index: React.FC = () => {
                 <button
                   className={cn(
                     "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                    activeTab === "administrators" 
-                      ? "bg-blue-600 text-white" 
+                    activeTab === "administrators"
+                      ? "bg-blue-600 text-white"
                       : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   )}
                   onClick={() => setActiveTab("administrators")}
@@ -416,9 +416,9 @@ const Index: React.FC = () => {
                 </button>
               </div>
             </div>
-            
+
             <AnimatePresence mode="wait">
-              <motion.div 
+              <motion.div
                 key={activeTab}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -427,7 +427,7 @@ const Index: React.FC = () => {
                 className="grid grid-cols-1 md:grid-cols-2 gap-6"
               >
                 {testimonials[activeTab as keyof typeof testimonials].map((testimonial, index) => (
-                  <TestimonialCard 
+                  <TestimonialCard
                     key={index}
                     content={testimonial.content}
                     author={testimonial.author}
@@ -438,7 +438,7 @@ const Index: React.FC = () => {
               </motion.div>
             </AnimatePresence>
           </motion.div>
-          
+
           {/* CTA Section */}
           <motion.div
             className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 text-white text-center"
@@ -472,43 +472,43 @@ const Index: React.FC = () => {
             <DialogTitle>Platform Features</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard 
+            <FeatureCard
               icon={ClipboardCheck}
               title="Smart Applications"
-              description="Submit leave requests with intelligent validation and templates."/>
-            <FeatureCard 
+              description="Submit leave requests with intelligent validation and templates." />
+            <FeatureCard
               icon={Bell}
               title="Instant Notifications"
-              description="Real-time alerts via email and mobile push notifications."/>
-            <FeatureCard 
+              description="Real-time alerts via email and mobile push notifications." />
+            <FeatureCard
               icon={Shield}
               title="Enterprise Security"
-              description="Bank-grade encryption and security protocols to protect data."/>
-            <FeatureCard 
+              description="Bank-grade encryption and security protocols to protect data." />
+            <FeatureCard
               icon={Users}
               title="Role-Based Access"
-              description="Customized interfaces for students, faculty, and administrators."/>
-            <FeatureCard 
+              description="Customized interfaces for students, faculty, and administrators." />
+            <FeatureCard
               icon={Calendar}
               title="Calendar Integration"
-              description="Sync with Google Calendar, Outlook, and more."/>
-            <FeatureCard 
+              description="Sync with Google Calendar, Outlook, and more." />
+            <FeatureCard
               icon={TrendingUp}
               title="Analytics Dashboard"
-              description="Comprehensive reports and analytics to track trends."/>
+              description="Comprehensive reports and analytics to track trends." />
           </div>
         </DialogContent>
       </Dialog>
-      
+
       {/* Additional Benefits Section */}
       <section className="bg-gray-50 dark:bg-gray-900 py-16">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">
             Benefits for Every Stakeholder
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <motion.div 
+            <motion.div
               className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow"
               whileHover={{ y: -5 }}
               initial={{ opacity: 0, y: 30 }}
@@ -532,8 +532,8 @@ const Index: React.FC = () => {
                 </li>
               </ul>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow"
               whileHover={{ y: -5 }}
               initial={{ opacity: 0, y: 30 }}
@@ -557,8 +557,8 @@ const Index: React.FC = () => {
                 </li>
               </ul>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow"
               whileHover={{ y: -5 }}
               initial={{ opacity: 0, y: 30 }}
@@ -582,8 +582,8 @@ const Index: React.FC = () => {
                 </li>
               </ul>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow"
               whileHover={{ y: -5 }}
               initial={{ opacity: 0, y: 30 }}

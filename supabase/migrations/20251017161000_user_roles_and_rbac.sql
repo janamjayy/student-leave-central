@@ -40,8 +40,6 @@ language sql stable as $$
   );
 $$;
 
--- RPC to check if user has a role
-drop function if exists public.has_role(uuid, text);
 create or replace function public.has_role(_user_id uuid, _role text)
 returns boolean
 language sql stable as $$

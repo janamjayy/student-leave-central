@@ -61,7 +61,7 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
           <img src={logo} alt="Institution Logo" className="w-12 h-12 rounded" />
           <div>
             <h2 className="font-bold text-2xl">Leave Application </h2>
-            
+
           </div>
         </div>
 
@@ -145,7 +145,6 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
           </div>
         </div>
 
-        {/* Watermark removed as requested */}
       </div>
     );
   }

@@ -20,7 +20,17 @@ USING (auth.uid() = user_id AND status = 'pending');
 
 -- Enable realtime for leave_applications
 ALTER TABLE leave_applications REPLICA IDENTITY FULL;
-ALTER PUBLICATION supabase_realtime ADD TABLE leave_applications;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'leave_applications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.leave_applications;
+  END IF;
+END $$;
 
 -- Create trigger function to send notifications on leave status change
 CREATE OR REPLACE FUNCTION notify_leave_status_change()
@@ -57,4 +67,14 @@ CREATE TRIGGER on_leave_status_change
 
 -- Enable realtime for notifications
 ALTER TABLE notifications REPLICA IDENTITY FULL;
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+END $$;

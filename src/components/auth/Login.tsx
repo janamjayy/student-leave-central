@@ -74,7 +74,7 @@ const Login = () => {
         // Faculty login via Supabase Auth with role validation
         await login(email, password, 'faculty');
         const profileLoaded = await waitForProfile();
-        
+
         if (!profileLoaded) {
           setError("Profile could not be loaded. Please try again.");
           setIsLoading(false);
@@ -90,7 +90,7 @@ const Login = () => {
       await login(email, password);
       // Wait until profile loads (this will usually take a moment)
       const profileLoaded = await waitForProfile();
-      
+
       if (!profileLoaded) {
         setError("Profile could not be loaded. Please try again.");
         setIsLoading(false);
@@ -99,7 +99,7 @@ const Login = () => {
 
       // Student tab - redirect to student dashboard
       console.log("[Login] Student login successful, redirecting to dashboard...");
-      navigate("/my-leaves", { replace: true });
+      navigate("/student/dashboard", { replace: true });
 
     } catch (err: any) {
       setError(
@@ -177,8 +177,8 @@ const Login = () => {
                   />
                 </div>
                 <div className="flex items-center space-x-2 my-4">
-                  <Checkbox 
-                    id="remember-me" 
+                  <Checkbox
+                    id="remember-me"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
                     disabled={isLoading}
@@ -190,8 +190,8 @@ const Login = () => {
                     Remember me
                   </label>
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full flex items-center gap-1.5 group"
                   disabled={isLoading}
                 >
@@ -204,7 +204,7 @@ const Login = () => {
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="faculty">
               <form onSubmit={handleLogin} className="space-y-5">
                 <div className="space-y-2">
@@ -238,8 +238,8 @@ const Login = () => {
                   />
                 </div>
                 <div className="flex items-center space-x-2 my-4">
-                  <Checkbox 
-                    id="faculty-remember-me" 
+                  <Checkbox
+                    id="faculty-remember-me"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
                     disabled={isLoading}
@@ -251,8 +251,8 @@ const Login = () => {
                     Remember me
                   </label>
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full flex items-center gap-1.5 group"
                   disabled={isLoading}
                 >
@@ -265,7 +265,7 @@ const Login = () => {
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="admin">
               <form onSubmit={handleLogin} className="space-y-5">
                 <div className="space-y-2">
@@ -299,8 +299,8 @@ const Login = () => {
                   />
                 </div>
                 <div className="flex items-center space-x-2 my-4">
-                  <Checkbox 
-                    id="admin-remember-me" 
+                  <Checkbox
+                    id="admin-remember-me"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
                     disabled={isLoading}
@@ -312,8 +312,8 @@ const Login = () => {
                     Remember me
                   </label>
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full flex items-center gap-1.5 group"
                   disabled={isLoading}
                 >
