@@ -15,6 +15,18 @@ import EmptyLeaveState from "@/components/leave/EmptyLeaveState";
 import LeaveReview from "./LeaveReview";
 import { LeaveApplication } from "@/services/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/context/AuthContext";
+import { useAdmin } from "@/context/AdminContext";
+import { toast } from "sonner";
 
 const LeaveManagement = () => {
   const {
@@ -53,7 +65,7 @@ const LeaveManagement = () => {
 
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [selectedTab, setSelectedTab] = useState("all");
-<<<<<<< HEAD
+
   const [applyOpen, setApplyOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [leaveType, setLeaveType] = useState("");
@@ -63,8 +75,7 @@ const LeaveManagement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
   const [studentOptions, setStudentOptions] = useState<Array<{ id: string; full_name: string; email: string; }>>([]);
-=======
->>>>>>> 5a79129459c03c2630069c01cbd8a0c84f252165
+
 
   // Filter leaves based on selected tab
   const filteredLeaves = leaves.filter(leave => {
@@ -94,8 +105,66 @@ const LeaveManagement = () => {
     );
   }
 
+
+  const { isAdmin, isFaculty } = useAuth();
+  const { isAdminAuthenticated, admin } = useAdmin();
+
+  const handleBackfill = async () => {
+    // Simple implementation to backfill approver names if missing
+    try {
+      const { data: leavesToUpdate, error } = await supabase
+        .from('leave_applications')
+        .select('id, reviewed_by')
+        .not('reviewed_by', 'is', null);
+
+      if (error) throw error;
+
+      let count = 0;
+      // This is a placeholder. Real backfill would need to fetch profiles and update.
+      // For now, we'll just toast.
+      toast.info("Backfill feature is not fully implemented yet.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to backfill");
+    }
+  };
+
+  const submitOnBehalf = async () => {
+    if (!selectedStudentId || !leaveType || !startDate || !endDate || !reason) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('leave_applications').insert({
+        student_id: selectedStudentId,
+        leave_type: leaveType,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        reason: reason,
+        status: 'pending' // or approved if admin wants to auto-approve?
+      });
+
+      if (error) throw error;
+
+      toast.success("Leave application submitted successfully");
+      setApplyOpen(false);
+      // Reset form
+      setSelectedStudentId("");
+      setLeaveType("");
+      setReason("");
+      setStartDate(undefined);
+      setEndDate(undefined);
+      refreshLeaves();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit leave");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-<<<<<<< HEAD
     <>
       <Card className="w-full shadow-lg">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -251,86 +320,7 @@ const LeaveManagement = () => {
         </DialogContent>
       </Dialog>
     </>
-=======
-    <Card className="w-full shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardTitle className="text-2xl font-bold text-gray-800">Leave Management</CardTitle>
-        <CardDescription>Review and process student leave applications</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <div className="mb-6">
-          <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList className="grid grid-cols-4 mb-6">
-              <TabsTrigger value="all">
-                All
-                <span className="ml-2 bg-gray-200 text-gray-800 text-xs rounded-full px-2 py-0.5">
-                  {leaves.length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="pending">
-                Pending
-                <span className="ml-2 bg-amber-100 text-amber-800 text-xs rounded-full px-2 py-0.5">
-                  {pendingCount}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="approved">
-                Approved
-                <span className="ml-2 bg-green-100 text-green-800 text-xs rounded-full px-2 py-0.5">
-                  {approvedCount}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="rejected">
-                Rejected
-                <span className="ml-2 bg-red-100 text-red-800 text-xs rounded-full px-2 py-0.5">
-                  {rejectedCount}
-                </span>
-              </TabsTrigger>
-            </TabsList>
 
-            <TabsContent value="all">
-              <LeaveFilters
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
-              />
-              {renderLeaveContent(filteredLeaves)}
-            </TabsContent>
-            
-            <TabsContent value="pending">
-              <LeaveFilters
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                statusFilter="pending"
-                setStatusFilter={setStatusFilter}
-              />
-              {renderLeaveContent(filteredLeaves)}
-            </TabsContent>
-            
-            <TabsContent value="approved">
-              <LeaveFilters
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                statusFilter="approved"
-                setStatusFilter={setStatusFilter}
-              />
-              {renderLeaveContent(filteredLeaves)}
-            </TabsContent>
-            
-            <TabsContent value="rejected">
-              <LeaveFilters
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                statusFilter="rejected"
-                setStatusFilter={setStatusFilter}
-              />
-              {renderLeaveContent(filteredLeaves)}
-            </TabsContent>
-          </Tabs>
-        </div>
-      </CardContent>
-    </Card>
->>>>>>> 5a79129459c03c2630069c01cbd8a0c84f252165
   );
 
   function renderLeaveContent(leaves: LeaveApplication[]) {
