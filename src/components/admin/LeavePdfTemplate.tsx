@@ -35,13 +35,8 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
         <div className="flex items-center gap-3 border-b pb-2 mb-4">
           <img src={logo} alt="Institution Logo" className="w-12 h-12 rounded" />
           <div>
-<<<<<<< HEAD
-            <h2 className="font-bold text-2xl">Leave Application </h2>
-
-=======
             <h2 className="font-bold text-2xl">Leave Application Certificate</h2>
             <p className="text-sm opacity-70">For audit/verification use</p>
->>>>>>> 5a79129459c03c2630069c01cbd8a0c84f252165
           </div>
         </div>
 
@@ -119,13 +114,10 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
           </div>
         </div>
 
-<<<<<<< HEAD
-=======
         {/* Watermark */}
         <div className="fixed bottom-16 right-8 opacity-10 text-6xl pointer-events-none select-none">
           HR Verified
         </div>
->>>>>>> 5a79129459c03c2630069c01cbd8a0c84f252165
       </div>
     );
   }
