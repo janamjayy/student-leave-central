@@ -3,7 +3,7 @@ import RoleBasedRoute from "@/components/common/RoleBasedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ClipboardList, FileText, BarChart3, Calendar, LineChart } from "lucide-react";
+import { ClipboardList, FileText, BarChart3, Calendar } from "lucide-react";
 
 const FacultyDashboard = () => {
   const navigate = useNavigate();
@@ -56,17 +56,6 @@ const FacultyDashboard = () => {
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full">View Analytics</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/faculty/my-analytics')}>
-              <CardHeader>
-                <LineChart className="h-8 w-8 mb-2 text-primary" />
-                <CardTitle>My Leave Analysis</CardTitle>
-                <CardDescription>Insights from my applications</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">View My Analysis</Button>
               </CardContent>
             </Card>
           </div>

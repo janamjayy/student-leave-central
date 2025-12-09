@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import React, { useRef } from "react";
 import LeavePdfTemplate from "./LeavePdfTemplate";
 import jsPDF from "jspdf";
@@ -34,9 +34,10 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
   const [approverName, setApproverName] = useState("");
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
-  const [teacherRemarks, setTeacherRemarks] = useState("");
-  const [isReasonInvalid, setIsReasonInvalid] = useState(false);
+  const [teacherRemarks, setTeacherRemarks] = useState(leave.teacher_remarks || "");
+  const [isReasonInvalid, setIsReasonInvalid] = useState(!!leave.is_reason_invalid);
   const [comments, setComments] = useState("");
+
   useEffect(() => {
     let ignore = false;
     const run = async () => {
@@ -50,7 +51,6 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
     run();
     return () => { ignore = true; };
   }, [leave.reviewed_by]);
-
   const handleStatusUpdate = async (status: 'approved' | 'rejected') => {
     // Allow if user is logged in OR if admin is authenticated via context
 
@@ -121,9 +121,31 @@ const LeaveReview = ({ leave, onStatusUpdate }: LeaveReviewProps) => {
 
   // Role/Audit: Figure out approver display based on user and leave
   const getApproverDisplay = () => {
-    // Prefer resolved approver full name; fallback to first line of remarks, else empty
-    const name = approverName || (leave.teacher_remarks ? (leave.teacher_remarks.split("\n")[0] || "") : "");
-    return { name, id: "", role: "" };
+    if (profile?.role === "student" && leave.status === "approved") {
+      // Approved by faculty
+      // Use reviewed_by and teacher_remarks if possible
+      return {
+        name: leave.teacher_remarks
+          ? (leave.teacher_remarks.split("\n")[0] || "Faculty")
+          : "Faculty",
+        id: leave.reviewed_by ?? "-",
+        role: "Faculty",
+      };
+    } else if (profile?.role === "faculty" && leave.status === "approved") {
+      // Approved by admin
+      return {
+        name: leave.teacher_remarks
+          ? (leave.teacher_remarks.split("\n")[0] || "Admin") // fallback
+          : "Admin",
+        id: leave.reviewed_by ?? "-",
+        role: "Admin",
+      };
+    }
+    return {
+      name: "",
+      id: "",
+      role: "",
+    };
   };
 
   // PDF generation logic

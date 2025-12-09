@@ -6,7 +6,6 @@ import logo from "/public/favicon.ico"; // Replace with your institution's logo 
 interface LeavePdfTemplateProps {
   leave: any;
   approver: { name: string; id: string; role: string };
-  applicant?: { name: string; role: string; id?: string | null };
   mode?: "dark" | "light";
 }
 
@@ -19,31 +18,7 @@ const formatDate = (date: string) =>
   });
 
 const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>(
-  ({ leave, approver, applicant, mode = "light" }, ref) => {
-    const buildQrUrl = () => {
-      try {
-        const payload = {
-          id: leave.id ?? null,
-          name: (applicant?.name || leave.student?.full_name || leave.student_name || leave.faculty_name) ?? "",
-          role: applicant?.role || (leave.student_name ? 'Student' : 'Faculty'),
-          status: leave.status,
-          leave_type: leave.leave_type,
-          start_date: leave.start_date,
-          end_date: leave.end_date,
-          generated_at: new Date().toISOString()
-        };
-        const json = JSON.stringify(payload);
-        const encoded = typeof window !== 'undefined'
-          ? btoa(unescape(encodeURIComponent(json)))
-          : Buffer.from(json, 'utf-8').toString('base64');
-        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        return `${origin}/verify?q=${encoded}`;
-      } catch {
-        // Fallback to simple text if encoding fails
-        return `Leave#${leave.id ?? ""}|${(leave.student?.full_name ?? leave.student_name ?? leave.faculty_name) ?? ""}|${leave.status}`;
-      }
-    };
-
+  ({ leave, approver, mode = "light" }, ref) => {
     return (
       <div
         ref={ref}
@@ -60,30 +35,31 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
         <div className="flex items-center gap-3 border-b pb-2 mb-4">
           <img src={logo} alt="Institution Logo" className="w-12 h-12 rounded" />
           <div>
+<<<<<<< HEAD
             <h2 className="font-bold text-2xl">Leave Application </h2>
 
+=======
+            <h2 className="font-bold text-2xl">Leave Application Certificate</h2>
+            <p className="text-sm opacity-70">For audit/verification use</p>
+>>>>>>> 5a79129459c03c2630069c01cbd8a0c84f252165
           </div>
         </div>
 
-        {/* Applicant + Leave Info */}
+        {/* User + Leave Info */}
         <div className="grid grid-cols-2 gap-6 mb-3">
           <div>
             <div>
               <span className="font-semibold">Name:</span>{" "}
-              {applicant?.name || leave.student?.full_name || leave.student_name || leave.faculty_name || "—"}
+              {leave.student?.full_name || leave.student_name}
             </div>
-            {applicant && (
-              <>
-                <div>
-                  <span className="font-semibold">Role:</span>{" "}{applicant.role}
-                </div>
-                {applicant.id ? (
-                  <div>
-                    <span className="font-semibold">ID:</span>{" "}{applicant.id}
-                  </div>
-                ) : null}
-              </>
-            )}
+            <div>
+              <span className="font-semibold">Role:</span>{" "}
+              {leave.student?.role ? leave.student.role.charAt(0).toUpperCase() + leave.student.role.slice(1) : "Student"}
+            </div>
+            <div>
+              <span className="font-semibold">ID:</span>{" "}
+              {leave.student?.student_id || leave.student_id}
+            </div>
           </div>
           <div>
             <div>
@@ -113,9 +89,7 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
               <tr>
                 <td className="font-semibold border px-3 py-1">Approved By</td>
                 <td className="border px-3 py-1">
-                  {(approver.name && approver.name.trim().length > 0)
-                    ? approver.name
-                    : (leave.approved_by_name || '—')}
+                  {approver.name} ({approver.role}, ID: {approver.id})
                 </td>
               </tr>
               <tr>
@@ -132,8 +106,8 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
         <div className="mt-8 flex items-end justify-between">
           <div>
             <QRCodeCanvas
-              value={buildQrUrl()}
-              size={96}
+              value={`Leave#${leave.id ?? ""}|${leave.student?.full_name ?? ""}|${leave.status}`}
+              size={60}
               bgColor={mode === "dark" ? "#18181b" : "#fff"}
               fgColor={mode === "dark" ? "#fff" : "#222"}
             />
@@ -145,6 +119,13 @@ const LeavePdfTemplate = React.forwardRef<HTMLDivElement, LeavePdfTemplateProps>
           </div>
         </div>
 
+<<<<<<< HEAD
+=======
+        {/* Watermark */}
+        <div className="fixed bottom-16 right-8 opacity-10 text-6xl pointer-events-none select-none">
+          HR Verified
+        </div>
+>>>>>>> 5a79129459c03c2630069c01cbd8a0c84f252165
       </div>
     );
   }

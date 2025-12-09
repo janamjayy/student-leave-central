@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,10 +19,10 @@ const AuthForm = ({ mode }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const navigate = useNavigate();
   const { login, signup, resetPassword } = useAuth();
@@ -38,7 +38,7 @@ const AuthForm = ({ mode }: AuthFormProps) => {
       return;
     }
 
-    if (mode === "signup" && (!email || !password || !name)) {
+    if (mode === "signup" && (!email || !password || !name || !studentId)) {
       setError("Please fill in all required fields");
       return;
     }
@@ -55,8 +55,8 @@ const AuthForm = ({ mode }: AuthFormProps) => {
         await login(email, password);
         navigate("/"); // Redirect to home page after login
       } else if (mode === "signup") {
-        await signup(name, email, password, avatarFile ?? undefined);
-        navigate("/login"); // Redirect to login page after signup
+        await signup(name, email, password, studentId);
+        navigate("/"); // Redirect to home page after signup
       } else if (mode === "forgot-password") {
         await resetPassword(email);
         setSuccess("Password reset email has been sent. Please check your inbox.");
@@ -73,11 +73,6 @@ const AuthForm = ({ mode }: AuthFormProps) => {
       setLoading(false);
     }
   };
-
-  const avatarPreview = useMemo(() => {
-    if (!avatarFile) return null;
-    return URL.createObjectURL(avatarFile);
-  }, [avatarFile]);
 
   const getTitle = () => {
     switch (mode) {
@@ -97,13 +92,11 @@ const AuthForm = ({ mode }: AuthFormProps) => {
     }
   };
 
-  const inputClass = "h-11 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200";
-
   return (
-    <Card className="w-full max-w-md mx-auto bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700/50">
+    <Card className="w-full max-w-md mx-auto shadow-lg">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-3xl font-bold text-center text-indigo-600 dark:text-indigo-400">{getTitle()}</CardTitle>
-        <CardDescription className="text-center text-slate-600 dark:text-slate-400">{getDescription()}</CardDescription>
+        <CardTitle className="text-2xl font-bold text-center">{getTitle()}</CardTitle>
+        <CardDescription className="text-center">{getDescription()}</CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
@@ -123,27 +116,6 @@ const AuthForm = ({ mode }: AuthFormProps) => {
           {mode === "signup" && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="avatar">Profile Picture</Label>
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-full overflow-hidden bg-muted flex items-center justify-center border">
-                    {avatarPreview ? (
-                      // eslint-disable-next-line jsx-a11y/img-redundant-alt
-                      <img src={avatarPreview} alt="Profile picture preview" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">No image</span>
-                    )}
-                  </div>
-                  <Input
-                    id="avatar"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
-                    disabled={loading}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">PNG/JPG up to ~2MB recommended.</p>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
@@ -153,7 +125,19 @@ const AuthForm = ({ mode }: AuthFormProps) => {
                   onChange={(e) => setName(e.target.value)}
                   disabled={loading}
                   required
-                  className={inputClass}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="studentId">Student ID</Label>
+                <Input
+                  id="studentId"
+                  type="text"
+                  placeholder="Enter your student ID"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  disabled={loading}
+                  required
                 />
               </div>
             </>
@@ -169,7 +153,6 @@ const AuthForm = ({ mode }: AuthFormProps) => {
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
               required
-              className={inputClass}
             />
           </div>
 
@@ -178,7 +161,7 @@ const AuthForm = ({ mode }: AuthFormProps) => {
               <div className="flex justify-between">
                 <Label htmlFor="password">Password</Label>
                 {mode === "login" && (
-                  <Link to="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 underline">
+                  <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
                     Forgot password?
                   </Link>
                 )}
@@ -191,16 +174,11 @@ const AuthForm = ({ mode }: AuthFormProps) => {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
                 required
-                className={inputClass}
               />
             </div>
           )}
 
-          <Button
-            type="submit"
-            className="w-full h-11 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={loading}
-          >
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -217,21 +195,21 @@ const AuthForm = ({ mode }: AuthFormProps) => {
           {mode === "login" ? (
             <>
               Don't have an account?{" "}
-              <Link to="/signup" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium underline">
+              <Link to="/signup" className="text-blue-600 hover:text-blue-800 font-medium">
                 Sign up
               </Link>
             </>
           ) : mode === "signup" ? (
             <>
               Already have an account?{" "}
-              <Link to="/login" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium underline">
+              <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
                 Login
               </Link>
             </>
           ) : (
             <>
               Remember your password?{" "}
-              <Link to="/login" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium underline">
+              <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
                 Login
               </Link>
             </>
